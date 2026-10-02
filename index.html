@@ -165,6 +165,10 @@ main { padding: 20px 0 48px; display: grid; grid-template-columns: minmax(0, 1fr
 .tab { border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; cursor: pointer; color: var(--text-2); font-weight: 600; white-space: nowrap; }
 .tab.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .1); }
 .tab .cnt { color: var(--muted); font-weight: 500; margin-left: 4px; font-size: 12px; }
+.period { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.period .chips { padding: 2px; }
+.period .chip { padding: 4px 10px; font-size: 12.5px; }
+.period .run { color: var(--muted); font-size: 12.5px; }
 .table-wrap { overflow: auto; max-height: 640px; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; }
 th, td { padding: 11px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -335,15 +339,24 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 40px; }
           <th data-k="gain">직전 기록</th><th data-k="capturedAt" class="r">확인</th>
         </tr></thead><tbody></tbody></table>
       </div>
+      <div class="period hidden" data-panel="changes">
+        <div class="chips" id="periodChips" role="tablist" aria-label="기간">
+          <button type="button" class="chip on" data-period="run">이번 수집</button>
+          <button type="button" class="chip" data-period="24h">24시간</button>
+          <button type="button" class="chip" data-period="7d">7일</button>
+          <button type="button" class="chip" data-period="all">전체</button>
+        </div>
+        <span class="run" id="runInfo"></span>
+      </div>
       <div class="table-wrap hidden" data-panel="changes">
         <table id="tChanges"><thead><tr>
-          <th data-k="capturedAt" class="sorted">갱신 확인</th><th data-k="zone" data-asc="1">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
+          <th data-k="at" class="sorted">갱신 확인</th><th data-k="zone" data-asc="1">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
           <th data-k="nick" data-asc="1">신규</th><th data-k="ms" data-asc="1" class="r">기록</th><th data-k="gain">직전 기록</th>
         </tr></thead><tbody></tbody></table>
       </div>
     </section>
   </main>
-  <footer>비공식 집계 · 게임 내 랭킹 &gt; 코스레코드 화면의 전체 1위 기록을 수집한 것입니다. 직전 기록은 최초 수집 이후에 바뀐 코스만 표시됩니다.</footer>
+  <footer>비공식 집계 · 게임 내 랭킹 &gt; 코스레코드 화면의 전체 1위 기록을 수집한 것입니다. 직전 기록과 갱신 내역은 최초 수집 이후에 바뀐 코스만 표시됩니다. '이번 수집'은 마지막 수집에서 새로 확인된 갱신입니다.</footer>
 </div>
 
 <div class="overlay" id="overlay"></div>
@@ -387,23 +400,25 @@ const pct = (a, b) => b ? a / b * 100 : 0;
 const byName = (a, b) => String(a).localeCompare(String(b), "ko");
 const startKey = r => r.zone + "|" + r.start;
 
-let records = [], colorOf = new Map(), refTime = Date.now();
+let records = [], colorOf = new Map(), refTime = Date.now(), runStart = null, hist = [];
 const state = {
-  zone: "", start: "", end: "", q: "", nick: null,
-  sort: { tDrivers: { k: "rank", asc: true }, tCourses: { k: "zone", asc: true }, tChanges: { k: "capturedAt", asc: false }, tDetail: { k: "ms", asc: true } },
+  zone: "", start: "", end: "", q: "", nick: null, period: "run",
+  sort: { tDrivers: { k: "rank", asc: true }, tCourses: { k: "zone", asc: true }, tChanges: { k: "at", asc: false }, tDetail: { k: "ms", asc: true } },
 };
 
 // ---------------------------------------------------------------- 데이터
 function load(db) {
   if (!db || !db.courses) { alert("ctrrank.py 수집 파일(ranks.json)이 아닙니다."); return; }
   refTime = db.updated ? Date.parse(db.updated) : Date.now();
+  // '이번 수집' = 마지막 수집 시작 이후 확인된 갱신. 예전 데이터(runStart 없음)는 업데이트 24시간 이내로 대신한다
+  runStart = db.runStart ? Date.parse(db.runStart) : refTime - RECENT_MS;
   records = Object.values(db.courses).filter(c => c.best && c.best.nick).map(c => {
     const prev = c.prev && c.prev.nick ? c.prev : null;
     const gain = prev && prev.ms != null && c.best.ms != null ? prev.ms - c.best.ms : null;
     return {
       zone: c.zoneName || "", start: c.startName || "", end: c.endName || "",
       nick: c.best.nick, car: c.best.car || "", ms: c.best.ms, capturedAt: c.capturedAt || "",
-      prev, gain, recent: !!prev && refTime - Date.parse(c.capturedAt) < RECENT_MS,
+      prev, gain, recent: !!prev && Date.parse(c.capturedAt) >= runStart,
     };
   });
   // 색은 전체 데이터 기준 상위 보유자에게 고정 (필터를 바꿔도 같은 사람은 같은 색)
@@ -506,6 +521,26 @@ const prevCell = r => r.prev
   ? `<span class="prev" title="${esc(r.prev.nick)} · ${esc(r.prev.car)} · ${fmtDate(r.prev.at)} 확인"><s>${esc(r.prev.nick)}</s><span class="mono">${fmtMs(r.prev.ms)}</span>${r.gain != null ? `<span class="gain mono${r.gain <= 0 ? " slower" : ""}">${fmtGain(r.gain)}</span>` : ""}</span>`
   : `<span class="muted">-</span>`;
 
+// 갱신 행: history.json(같은 코스의 여러 번 갱신 포함)이 있으면 그것을, 없으면 코스별 직전 기록(prev)을 쓴다
+function changeRows() {
+  if (hist.length) {
+    return hist.filter(h => h && h.new && h.old).map(h => {
+      const [start, end] = String(h.course || "").split(" → ");
+      const gain = h.old.ms != null && h.new.ms != null ? h.old.ms - h.new.ms : null;
+      return { at: h.at || "", zone: h.zoneName || "", start: start || "", end: end || "",
+        nick: h.new.nick, car: h.new.car || "", ms: h.new.ms, prev: h.old, gain };
+    });
+  }
+  return records.filter(r => r.prev).map(r => ({ ...r, at: r.capturedAt }));
+}
+
+function inPeriod(h, period) {
+  const t = Date.parse(h.at);
+  if (!isFinite(t)) return period === "all";
+  return period === "run" ? t >= runStart : period === "24h" ? refTime - t <= RECENT_MS
+    : period === "7d" ? refTime - t <= 7 * RECENT_MS : true;
+}
+
 // ---------------------------------------------------------------- 렌더
 function render() {
   const rows = filtered();
@@ -516,12 +551,12 @@ function render() {
   $$("#zoneChips .chip").forEach(b => b.classList.toggle("on", b.dataset.zone === state.zone));
 
   // KPI
-  const changed = rows.filter(r => r.prev);
-  const recent = rows.filter(r => r.recent);
+  const changes = changeRows();
+  const recent = changes.filter(h => inPeriod(h, "run"));
   $("#kCourses").innerHTML = `${rows.length.toLocaleString()}<small>코스</small>`;
   $("#kHolders").innerHTML = `${ds.length.toLocaleString()}<small>명</small>`;
-  $("#kNew").innerHTML = `${recent.length.toLocaleString()}<small>코스</small>`;
-  $("#kNewL").textContent = `최근 24시간 갱신 · 누적 ${changed.length}`;
+  $("#kNew").innerHTML = `${recent.length.toLocaleString()}<small>건</small>`;
+  $("#kNewL").textContent = `이번 수집 갱신 · 누적 ${changes.length}건`;
   const fast = rows.reduce((m, r) => r.ms != null && (!m || r.ms < m.ms) ? r : m, null);
   $("#kFast").textContent = fast ? fmtMs(fast.ms) : "-";
   $("#kFastL").textContent = fast ? `최단 · ${fast.start} → ${fast.end}` : "최단 기록";
@@ -552,13 +587,20 @@ function render() {
     <td>${prevCell(r)}</td><td class="r muted mono">${fmtDate(r.capturedAt).slice(0, 5)}</td></tr>`).join("")
     : `<tr><td colspan="8" class="empty">조건에 맞는 코스가 없습니다</td></tr>`;
 
-  // 기록 갱신 (직전 기록이 있는 코스)
-  const chShown = sortRows(changed.filter(hit), state.sort.tChanges);
-  $("#cChanges").textContent = chShown.length;
-  $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(r => `
-    <tr><td class="muted mono">${fmtDate(r.capturedAt)}</td><td><span class="tag">${esc(r.zone)}</span></td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
-    <td>${who(r.nick, r.recent)}</td><td class="r mono time">${fmtMs(r.ms)}</td><td>${prevCell(r)}</td></tr>`).join("")
-    : `<tr><td colspan="7" class="empty">아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀐 코스가 여기에 표시됩니다.</td></tr>`;
+  // 기록 갱신: 기간 칩 + 현재 필터
+  $$("#periodChips .chip").forEach(b => b.classList.toggle("on", b.dataset.period === state.period));
+  const rs = new Date(runStart), p2 = n => String(n).padStart(2, "0");
+  $("#runInfo").textContent = `이번 수집 시작 ${p2(rs.getMonth() + 1)}.${p2(rs.getDate())} ${p2(rs.getHours())}:${p2(rs.getMinutes())}` +
+    (hist.length ? ` · 전체 이력 ${hist.length}건` : "");
+  const inFilter = h => (!state.zone || h.zone === state.zone) && (!state.start || startKey(h) === state.start) && (!state.end || h.end === state.end);
+  const chShown = sortRows(changes.filter(h => inPeriod(h, state.period) && inFilter(h) && hit(h)), state.sort.tChanges);
+  $("#cChanges").textContent = changes.filter(h => inPeriod(h, "run")).length;
+  const emptyMsg = { run: "이번 수집에서 갱신된 기록이 없습니다", "24h": "최근 24시간 동안 갱신된 기록이 없습니다",
+    "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다" }[state.period];
+  $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(h => `
+    <tr><td class="muted mono">${fmtDate(h.at)}</td><td><span class="tag">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
+    <td>${who(h.nick, inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td><td>${prevCell(h)}</td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">${emptyMsg}</td></tr>`;
 
   $$("table").forEach(markSorted);
   if (state.nick) renderDrawer();
@@ -682,6 +724,10 @@ $("#zoneChips").addEventListener("click", e => {
 });
 $("#fStart").addEventListener("change", e => { state.start = e.target.value; fillEnds(); render(); });
 $("#fEnd").addEventListener("change", e => { state.end = e.target.value; render(); });
+$("#periodChips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  state.period = b.dataset.period; render();
+});
 $("#fSearch").addEventListener("input", e => { state.q = e.target.value; render(); });
 $("#resetBtn").addEventListener("click", () => {
   Object.assign(state, { zone: "", start: "", end: "", q: "" }); $("#fSearch").value = ""; fillStarts(); render();
@@ -752,7 +798,12 @@ if (EMBEDDED) {
 } else if (location.protocol.startsWith("http")) {
   // GitHub Pages 등 웹 서버: 같은 폴더의 ranks.json
   drop.classList.add("hidden");
-  fetchJson("ranks.json").then(db => { $("#openBtn").classList.add("hidden"); load(db); openHash(); })
+  fetchJson("ranks.json").then(db => {
+    $("#openBtn").classList.add("hidden");
+    load(db);
+    openHash();
+    fetchJson("history.json").then(h => { hist = Array.isArray(h) ? h : []; render(); }).catch(() => {});
+  })
     .catch(() => drop.classList.remove("hidden"));
 }
 </script>
