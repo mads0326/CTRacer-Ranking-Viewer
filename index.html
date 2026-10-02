@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CTRacer 코스레코드</title>
+<meta name="description" content="CTRacer 코스별 전체 1위 기록 비공식 집계">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f2f3f5; --surface-3: #e9eaee;
+  --border: #e4e5e9; --text: #0d0e12; --text-2: #50535c; --muted: #8a8d96;
+  --accent: #2a78d6; --accent-2: #4a3aa7; --accent-soft: #e6effb;
+  --gold: #c99400; --silver: #8a9099; --bronze: #b0652e; --good: #0f8a5f;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c-other: #c9cbd1;
+  --shadow: 0 1px 2px rgb(16 24 40 / .04), 0 4px 16px rgb(16 24 40 / .06);
+  --glass: rgb(244 245 247 / .8);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e0f12; --surface: #17181c; --surface-2: #1f2025; --surface-3: #2a2b31;
+    --border: #2b2c33; --text: #f4f5f7; --text-2: #b9bbc3; --muted: #80838d;
+    --accent: #3987e5; --accent-2: #9085e9; --accent-soft: #1b2a40;
+    --gold: #e6b93d; --silver: #b6bcc4; --bronze: #d8915d; --good: #3ecf8e;
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c-other: #4a4c55;
+    --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .25);
+    --glass: rgb(14 15 18 / .8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e0f12; --surface: #17181c; --surface-2: #1f2025; --surface-3: #2a2b31;
+  --border: #2b2c33; --text: #f4f5f7; --text-2: #b9bbc3; --muted: #80838d;
+  --accent: #3987e5; --accent-2: #9085e9; --accent-soft: #1b2a40;
+  --gold: #e6b93d; --silver: #b6bcc4; --bronze: #d8915d; --good: #3ecf8e;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c-other: #4a4c55;
+  --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .25);
+  --glass: rgb(14 15 18 / .8);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 "Pretendard Variable", Pretendard, "Malgun Gothic", system-ui, sans-serif; letter-spacing: -0.01em; }
+.mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+.hidden { display: none !important; }
+button, select, input { font: inherit; color: inherit; letter-spacing: inherit; }
+
+/* hero */
+.hero { padding: 36px 0 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; flex: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: var(--shadow); }
+.hero h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.hero .meta { color: var(--text-2); font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  background: var(--surface-3); color: var(--text-2); }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+.hero-actions { display: flex; gap: 8px; }
+.icon-btn { height: 36px; min-width: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.icon-btn:hover { background: var(--surface-2); }
+
+/* filter bar */
+.filterbar { position: sticky; top: 0; z-index: 20; backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  background: var(--glass); border-bottom: 1px solid transparent; transition: border-color .2s; }
+.filterbar.stuck { border-bottom-color: var(--border); }
+.filterbar .wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
+.chips { display: flex; gap: 4px; padding: 3px; background: var(--surface-3); border-radius: 12px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { border: 0; background: transparent; padding: 6px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap; color: var(--text-2); font-weight: 500; }
+.chip.on { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 3px rgb(0 0 0 / .1); }
+.route-pick { display: flex; align-items: center; gap: 6px; }
+.field { position: relative; display: flex; align-items: center; }
+.field select, .field input { height: 38px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 0 12px; outline: none; }
+.field select { padding-right: 30px; appearance: none; -webkit-appearance: none; width: 170px; cursor: pointer; text-overflow: ellipsis; }
+.field.sel::after { content: ""; position: absolute; right: 12px; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted);
+  transform: translateY(-2px) rotate(45deg); pointer-events: none; }
+.field select:focus, .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.route-arrow { color: var(--muted); }
+.field.search { flex: 1; min-width: 180px; }
+.field.search input { width: 100%; padding-left: 34px; }
+.field.search svg { position: absolute; left: 11px; color: var(--muted); }
+.stamp { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; color: var(--text-2); white-space: nowrap; }
+.stamp b { color: var(--text); font-weight: 700; }
+.stamp .ago { color: var(--muted); }
+.stamp.stale .live-dot { background: var(--c4); }
+@media (max-width: 640px) { .stamp { margin-left: 0; width: 100%; justify-content: center; } }
+.reset { color: var(--accent); background: none; border: 0; cursor: pointer; font-weight: 600; padding: 6px 4px; }
+@media (max-width: 640px) { .route-pick { width: 100%; } .route-pick .field { flex: 1; min-width: 0; } .field select { width: 100%; } }
+
+/* cards */
+main { padding: 20px 0 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); min-width: 0; }
+.card h2 { margin: 0 0 4px; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.card .desc { margin: 0 0 16px; color: var(--muted); font-size: 12.5px; }
+.grid { display: grid; gap: 16px; min-width: 0; }
+.grid > * { min-width: 0; }
+.g-kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g-main { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+@media (max-width: 960px) { .g-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-main { grid-template-columns: 1fr; } }
+.kpi { display: flex; gap: 14px; align-items: center; padding: 18px 20px; }
+.kpi .ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+.kpi .v { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .v small { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 3px; }
+.kpi .l { color: var(--text-2); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi > div:last-child { min-width: 0; }
+@media (max-width: 480px) { .kpi { padding: 14px; gap: 10px; } .kpi .ico { display: none; } .kpi .v { font-size: 20px; } }
+
+/* podium */
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; }
+.pod { border-radius: 14px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; transition: transform .15s; border: 1px solid var(--border); }
+.pod:hover { transform: translateY(-2px); }
+.pod .place { font-size: 12px; font-weight: 800; letter-spacing: .06em; }
+.pod .trophy { position: absolute; right: 14px; top: 14px; }
+.pod .name { font-size: 17px; font-weight: 800; margin-top: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pod .n { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-top: 2px; }
+.pod .n small { font-size: 13px; color: var(--muted); font-weight: 600; margin-left: 3px; }
+.pod .sub { color: var(--text-2); font-size: 12px; margin-top: 6px; }
+.pod.p1 { order: 2; padding-top: 30px; background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 18%, var(--surface)), var(--surface)); }
+.pod.p2 { order: 1; padding-top: 22px; background: linear-gradient(180deg, color-mix(in srgb, var(--silver) 18%, var(--surface)), var(--surface)); }
+.pod.p3 { order: 3; background: linear-gradient(180deg, color-mix(in srgb, var(--bronze) 18%, var(--surface)), var(--surface)); }
+@media (max-width: 560px) { .podium { grid-template-columns: 1fr; } .pod.p1, .pod.p2, .pod.p3 { order: 0; padding-top: 16px; } }
+
+/* bar chart */
+.bars { display: grid; gap: 2px; }
+.bar-row { display: grid; grid-template-columns: 22px minmax(70px, 120px) 1fr; gap: 10px; align-items: center; height: 30px; padding: 0 6px; border-radius: 8px; cursor: pointer; }
+.bar-row:hover { background: var(--surface-2); }
+.bar-row .rk { color: var(--muted); font-size: 12px; text-align: right; }
+.bar-row .nm { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-row .track { height: 14px; display: flex; align-items: center; }
+.bar-row .fill { height: 14px; border-radius: 0 4px 4px 0; background: var(--accent); min-width: 3px; transition: width .4s cubic-bezier(.2,.8,.2,1); }
+.bar-row .val { margin-left: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+/* donut */
+.donut-wrap { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.donut { position: relative; width: 170px; height: 170px; flex: none; margin: 0 auto; }
+.donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.donut circle.seg { fill: none; stroke-width: 24; cursor: pointer; transition: stroke-width .15s; }
+.donut circle.seg:hover { stroke-width: 28; }
+.donut .center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; }
+.donut .center b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.donut .center span { font-size: 12px; color: var(--muted); }
+.legend { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; flex: 1; min-width: 180px; }
+.legend li { display: grid; grid-template-columns: 12px 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; }
+.legend .dot { width: 10px; height: 10px; border-radius: 3px; }
+.legend .pct { color: var(--muted); font-size: 12px; width: 48px; text-align: right; }
+
+/* stacked */
+.stack-legend { display: flex; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12.5px; color: var(--text-2); }
+.stack-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.stack-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.stack-row { display: grid; grid-template-columns: 52px 1fr 44px; gap: 12px; align-items: center; margin-bottom: 10px; }
+.stack-row .z { font-size: 13px; font-weight: 600; }
+.stack-row .n { font-size: 12px; color: var(--muted); text-align: right; }
+.stack { display: flex; gap: 2px; height: 22px; border-radius: 6px; overflow: hidden; }
+.stack div { height: 100%; min-width: 2px; cursor: pointer; transition: filter .15s; }
+.stack div:hover { filter: brightness(1.12); }
+
+/* tabs & tables */
+.tabs { display: flex; gap: 4px; padding: 3px; background: var(--surface-3); border-radius: 12px; width: fit-content; max-width: 100%; overflow-x: auto; margin-bottom: 16px; }
+.tab { border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; cursor: pointer; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+.tab.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .1); }
+.tab .cnt { color: var(--muted); font-weight: 500; margin-left: 4px; font-size: 12px; }
+.table-wrap { overflow: auto; max-height: 640px; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th, td { padding: 11px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { position: sticky; top: 0; z-index: 1; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; user-select: none; }
+th:hover, th.sorted { color: var(--text); }
+th.sorted::after { content: " ↓"; } th.sorted.asc::after { content: " ↑"; }
+th.r, td.r { text-align: right; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr.click { cursor: pointer; }
+.rank { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-size: 12px; font-weight: 800; background: var(--surface-3); color: var(--text-2); }
+.rank.r1 { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+.rank.r2 { background: color-mix(in srgb, var(--silver) 22%, transparent); color: var(--silver); }
+.rank.r3 { background: color-mix(in srgb, var(--bronze) 22%, transparent); color: var(--bronze); }
+.who { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+.who:hover .nm { text-decoration: underline; text-underline-offset: 3px; }
+.av { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; flex: none; background: var(--c-other); }
+.share { display: inline-flex; align-items: center; gap: 8px; }
+.share .mini { width: 64px; height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.share .mini i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--surface-3); color: var(--text-2); font-size: 12px; margin-right: 4px; }
+.new { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .03em;
+  color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); vertical-align: 1px; }
+.time { font-weight: 700; }
+.prev { display: inline-flex; gap: 6px; align-items: baseline; font-size: 12.5px; color: var(--muted); }
+.prev s { text-decoration: none; }
+.gain { color: var(--good); font-weight: 700; }
+.gain.slower { color: var(--muted); }
+.muted { color: var(--muted); }
+.empty { padding: 40px 0; text-align: center; color: var(--muted); }
+
+/* drawer */
+.overlay { position: fixed; inset: 0; background: rgb(0 0 0 / .35); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.overlay.open { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(600px, 100vw); background: var(--surface); z-index: 50;
+  box-shadow: -8px 0 32px rgb(0 0 0 / .18); transform: translateX(100%); transition: transform .25s cubic-bezier(.2,.8,.2,1); display: flex; flex-direction: column; }
+.drawer.open { transform: none; }
+.drawer header { padding: 22px 22px 16px; display: flex; gap: 14px; align-items: center; border-bottom: 1px solid var(--border); }
+.drawer header .av { width: 48px; height: 48px; font-size: 18px; }
+.drawer header h3 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.03em; overflow: hidden; text-overflow: ellipsis; }
+.drawer header .sub { color: var(--text-2); font-size: 13px; }
+.drawer header .icon-btn { margin-left: auto; }
+.drawer .body { padding: 18px 22px 28px; overflow-y: auto; overflow-x: hidden; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-content: start; }
+.drawer .body > * { min-width: 0; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border-radius: 12px; padding: 12px; min-width: 0; }
+.stat b { display: block; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat span { font-size: 12px; color: var(--muted); }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.drawer h4 { margin: 0 0 10px; font-size: 13px; color: var(--text-2); font-weight: 700; }
+.zbars { display: grid; gap: 8px; }
+.zbar { display: grid; grid-template-columns: 52px 1fr 36px; gap: 10px; align-items: center; font-size: 13px; }
+.zbar .t { height: 10px; background: var(--surface-3); border-radius: 5px; overflow: hidden; }
+.zbar .t i { display: block; height: 100%; border-radius: 5px; }
+
+/* misc */
+.drop { border: 2px dashed var(--border); border-radius: 16px; padding: 56px 16px; text-align: center; color: var(--text-2); background: var(--surface); }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop code { background: var(--surface-3); padding: 2px 6px; border-radius: 6px; }
+.tip { position: fixed; z-index: 60; pointer-events: none; background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 12px; font-size: 12.5px; box-shadow: var(--shadow); display: none; max-width: 280px; }
+.tip b { display: block; margin-bottom: 2px; }
+footer { color: var(--muted); font-size: 12px; padding: 0 0 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15V4h12l-2 4 2 4H6"/><path d="M4 21v-6"/></svg>
+      </div>
+      <div>
+        <h1>CTRacer 코스레코드</h1>
+        <div class="meta"><span class="badge"><i class="live-dot"></i><span id="updated">데이터 없음</span></span><span>코스별 전체 1위 기록 · 비공식 집계</span></div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <input type="file" id="file" accept=".json" class="hidden">
+      <button type="button" class="icon-btn" id="openBtn" title="ranks.json 불러오기">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        <span>불러오기</span>
+      </button>
+      <button type="button" class="icon-btn" id="themeBtn" title="라이트/다크 전환" aria-label="라이트/다크 전환">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="filterbar hidden" id="filterbar">
+  <div class="wrap">
+    <div class="chips" id="zoneChips" role="tablist" aria-label="지역"></div>
+    <div class="route-pick">
+      <label class="field sel"><select id="fStart" aria-label="출발지"></select></label>
+      <span class="route-arrow" aria-hidden="true">→</span>
+      <label class="field sel"><select id="fEnd" aria-label="도착지"></select></label>
+    </div>
+    <label class="field search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="search" id="fSearch" placeholder="닉네임 · 차량 검색" aria-label="닉네임 또는 차량 검색">
+    </label>
+    <button type="button" class="reset hidden" id="resetBtn">초기화</button>
+    <span class="stamp" id="stamp" title="게임 랭킹에서 마지막으로 목록을 수집한 시각"><i class="live-dot"></i>마지막 갱신 <b class="mono" id="stampTime">-</b><span class="ago" id="stampAgo"></span></span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="drop" class="drop">
+    <p style="font-size:16px;font-weight:700;color:var(--text);margin:0 0 6px">ranks.json 파일을 끌어다 놓으세요</p>
+    <p style="margin:0">또는 오른쪽 위 [불러오기] · 수집은 <code>python ctrrank.py auto --bg</code></p>
+  </div>
+
+  <main id="app" class="hidden">
+    <section class="grid g-kpi">
+      <div class="card kpi"><div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+        <div><div class="v mono" id="kCourses">0</div><div class="l">수집된 코스</div></div></div>
+      <div class="card kpi"><div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M17 3.5a4 4 0 0 1 0 8"/><path d="M22 21a7 7 0 0 0-4-6.3"/></svg></div>
+        <div><div class="v mono" id="kHolders">0</div><div class="l">기록 보유자</div></div></div>
+      <div class="card kpi"><div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+        <div><div class="v mono" id="kNew">0</div><div class="l" id="kNewL">최근 24시간 갱신</div></div></div>
+      <div class="card kpi"><div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <div><div class="v mono" id="kFast">-</div><div class="l" id="kFastL">최단 기록</div></div></div>
+    </section>
+
+    <section class="card">
+      <h2>코스레코드 TOP 3</h2>
+      <p class="desc">현재 필터 기준 보유 코스 수 · 카드를 누르면 상세</p>
+      <div class="podium" id="podium"></div>
+    </section>
+
+    <section class="grid g-main">
+      <div class="card">
+        <h2>보유 코스 수 TOP 15</h2>
+        <p class="desc">막대를 누르면 드라이버 상세가 열립니다</p>
+        <div class="bars" id="barChart"></div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="card">
+          <h2>차량 점유율</h2>
+          <p class="desc">코스레코드를 세운 차량</p>
+          <div class="donut-wrap" id="donut"></div>
+        </div>
+        <div class="card">
+          <h2>지역별 1위 점유</h2>
+          <p class="desc">지역 안에서 상위 보유자가 차지한 비율</p>
+          <div id="zoneStack"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab on" data-tab="drivers">닉네임 순위<span class="cnt" id="cDrivers"></span></button>
+        <button type="button" class="tab" data-tab="courses">코스 목록<span class="cnt" id="cCourses"></span></button>
+        <button type="button" class="tab" data-tab="changes">기록 갱신<span class="cnt" id="cChanges"></span></button>
+      </div>
+      <div class="table-wrap" data-panel="drivers">
+        <table id="tDrivers"><thead><tr>
+          <th data-k="rank" data-asc="1" class="sorted asc">순위</th><th data-k="nick" data-asc="1">닉네임</th>
+          <th data-k="n" class="r">보유</th><th data-k="share">점유율</th><th data-k="zones">지역</th>
+          <th data-k="car" data-asc="1">주 차량</th><th data-k="fastest" data-asc="1" class="r">최단 기록</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="table-wrap hidden" data-panel="courses">
+        <table id="tCourses"><thead><tr>
+          <th data-k="zone" data-asc="1" class="sorted asc">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
+          <th data-k="nick" data-asc="1">보유자</th><th data-k="car" data-asc="1">차량</th><th data-k="ms" data-asc="1" class="r">기록</th>
+          <th data-k="gain">직전 기록</th><th data-k="capturedAt" class="r">확인</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="table-wrap hidden" data-panel="changes">
+        <table id="tChanges"><thead><tr>
+          <th data-k="capturedAt" class="sorted">갱신 확인</th><th data-k="zone" data-asc="1">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
+          <th data-k="nick" data-asc="1">신규</th><th data-k="ms" data-asc="1" class="r">기록</th><th data-k="gain">직전 기록</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+  </main>
+  <footer>비공식 집계 · 게임 내 랭킹 &gt; 코스레코드 화면의 전체 1위 기록을 수집한 것입니다. 직전 기록은 최초 수집 이후에 바뀐 코스만 표시됩니다.</footer>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header>
+    <span class="av" id="dAv"></span>
+    <div style="min-width:0"><h3 id="dName"></h3><div class="sub" id="dSub"></div></div>
+    <button type="button" class="icon-btn" id="dClose" aria-label="닫기">✕</button>
+  </header>
+  <div class="body">
+    <div class="stats" id="dStats"></div>
+    <div><h4>지역별 보유</h4><div class="zbars" id="dZones"></div></div>
+    <div><h4>사용 차량</h4><div id="dCars"></div></div>
+    <div>
+      <h4>보유 코스</h4>
+      <div class="table-wrap" style="max-height:none">
+        <table id="tDetail"><thead><tr>
+          <th data-k="zone" data-asc="1">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
+          <th data-k="ms" data-asc="1" class="r sorted asc">기록</th><th data-k="gain">직전 기록</th><th data-k="car" data-asc="1">차량</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+</aside>
+<div class="tip" id="tip"></div>
+
+<script>
+const EMBEDDED = /*__RANK_DATA__*/null;
+const ZONE_ORDER = ["강북", "강남", "부산", "상해", "맨하탄"];
+const PALETTE = ["--c1", "--c2", "--c3", "--c4", "--c5"];  // 상위 보유자 고정 색 (순서 고정, 순환하지 않음)
+const RECENT_MS = 24 * 3600 * 1000;
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtMs = ms => ms == null || !isFinite(ms) ? "-" :
+  `${String(Math.floor(ms / 60000)).padStart(2, "0")}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}.${String(ms % 1000).padStart(3, "0")}`;
+const fmtGain = g => (g > 0 ? "−" : "+") + (Math.abs(g) / 1000).toFixed(3) + "s";
+const fmtDate = s => s ? s.replace("T", " ").slice(5, 16).replace("-", ".") : "";
+const pct = (a, b) => b ? a / b * 100 : 0;
+const byName = (a, b) => String(a).localeCompare(String(b), "ko");
+const startKey = r => r.zone + "|" + r.start;
+
+let records = [], colorOf = new Map(), refTime = Date.now();
+const state = {
+  zone: "", start: "", end: "", q: "", nick: null,
+  sort: { tDrivers: { k: "rank", asc: true }, tCourses: { k: "zone", asc: true }, tChanges: { k: "capturedAt", asc: false }, tDetail: { k: "ms", asc: true } },
+};
+
+// ---------------------------------------------------------------- 데이터
+function load(db) {
+  if (!db || !db.courses) { alert("ctrrank.py 수집 파일(ranks.json)이 아닙니다."); return; }
+  refTime = db.updated ? Date.parse(db.updated) : Date.now();
+  records = Object.values(db.courses).filter(c => c.best && c.best.nick).map(c => {
+    const prev = c.prev && c.prev.nick ? c.prev : null;
+    const gain = prev && prev.ms != null && c.best.ms != null ? prev.ms - c.best.ms : null;
+    return {
+      zone: c.zoneName || "", start: c.startName || "", end: c.endName || "",
+      nick: c.best.nick, car: c.best.car || "", ms: c.best.ms, capturedAt: c.capturedAt || "",
+      prev, gain, recent: !!prev && refTime - Date.parse(c.capturedAt) < RECENT_MS,
+    };
+  });
+  // 색은 전체 데이터 기준 상위 보유자에게 고정 (필터를 바꿔도 같은 사람은 같은 색)
+  colorOf = new Map(countBy(records, r => r.nick).slice(0, PALETTE.length).map(([n], i) => [n, `var(${PALETTE[i]})`]));
+  updateStamp();
+  $("#drop").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#filterbar").classList.remove("hidden");
+  buildZoneChips();
+  fillStarts();
+  render();
+}
+
+function countBy(rows, f) {
+  const m = new Map();
+  for (const r of rows) { const k = f(r); m.set(k, (m.get(k) || 0) + 1); }
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || byName(a[0], b[0]));
+}
+
+function filtered() {
+  return records.filter(r => (!state.zone || r.zone === state.zone) && (!state.start || startKey(r) === state.start) && (!state.end || r.end === state.end));
+}
+
+function drivers(rows) {
+  const by = new Map();
+  for (const r of rows) (by.get(r.nick) || by.set(r.nick, []).get(r.nick)).push(r);
+  const list = [...by.entries()].map(([nick, rs]) => {
+    const zoneList = countBy(rs, r => r.zone).sort((a, b) => ZONE_ORDER.indexOf(a[0]) - ZONE_ORDER.indexOf(b[0]));
+    const fastest = rs.reduce((m, r) => r.ms != null && r.ms < m ? r.ms : m, Infinity);
+    return { nick, rows: rs, n: rs.length, share: rs.length / rows.length, zoneList,
+      zones: zoneList.map(([z, n]) => `${z} ${n}`).join(" "), car: countBy(rs, r => r.car)[0]?.[0] || "", fastest };
+  }).sort((a, b) => b.n - a.n || byName(a.nick, b.nick));
+  let prev = null, rank = 0;
+  list.forEach((d, i) => { if (d.n !== prev) { rank = i + 1; prev = d.n; } d.rank = rank; });
+  return list;
+}
+
+function sortRows(arr, { k, asc }) {
+  return arr.sort((a, b) => {
+    let x = a[k], y = b[k];
+    if (k === "zone") { x = ZONE_ORDER.indexOf(a.zone); y = ZONE_ORDER.indexOf(b.zone); }
+    const c = typeof x === "string" || typeof y === "string" ? byName(x ?? "", y ?? "") : (x ?? -Infinity) - (y ?? -Infinity);
+    return (asc ? c : -c) || byName(a.start ?? "", b.start ?? "") || byName(a.end ?? "", b.end ?? "");
+  });
+}
+
+// 마지막 갱신 시각: 상단 배지 + 고정 필터 바 (상대 시간은 1분마다 갱신)
+function agoText(t) {
+  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (m < 1) return "방금 전";
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  return h < 24 ? `${h}시간 전` : `${Math.floor(h / 24)}일 전`;
+}
+function updateStamp() {
+  if (!isFinite(refTime)) return;
+  const d = new Date(refTime), p = n => String(n).padStart(2, "0");
+  const abs = `${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  $("#stampTime").textContent = abs;
+  $("#stampAgo").textContent = "· " + agoText(refTime);
+  $("#updated").textContent = `마지막 갱신 ${d.getFullYear()}.${abs} (${agoText(refTime)})`;
+  $("#stamp").classList.toggle("stale", Date.now() - refTime > 36 * 3600 * 1000);  // 하루 반 넘게 갱신 없으면 노란 점
+}
+setInterval(updateStamp, 60000);
+
+// ---------------------------------------------------------------- 필터
+function buildZoneChips() {
+  const zones = ZONE_ORDER.filter(z => records.some(r => r.zone === z));
+  $("#zoneChips").innerHTML = [["", "전체"], ...zones.map(z => [z, z])]
+    .map(([v, l]) => `<button type="button" class="chip" data-zone="${esc(v)}" role="tab">${esc(l)}</button>`).join("");
+}
+
+function setOptions(sel, allLabel, opts, cur) {
+  sel.innerHTML = `<option value="">${allLabel}</option>` + opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("");
+  sel.value = opts.some(([v]) => v === cur) ? cur : "";
+  return sel.value;
+}
+
+function fillStarts() {
+  const m = new Map();
+  for (const r of records) if (!state.zone || r.zone === state.zone) m.set(startKey(r), state.zone ? r.start : `${r.start} · ${r.zone}`);
+  state.start = setOptions($("#fStart"), "출발지 전체", [...m.entries()].sort((a, b) => byName(a[1], b[1])), state.start);
+  fillEnds();
+}
+
+function fillEnds() {
+  const names = new Set(records.filter(r => (!state.zone || r.zone === state.zone) && (!state.start || startKey(r) === state.start)).map(r => r.end));
+  state.end = setOptions($("#fEnd"), "도착지 전체", [...names].sort(byName).map(n => [n, n]), state.end);
+}
+
+// ---------------------------------------------------------------- 공용 조각
+function avatar(nick, id) {
+  const c = colorOf.get(nick);
+  return `<span class="av"${id ? ` id="${id}"` : ""}${c ? ` style="background:${c}"` : ""}>${esc([...String(nick)][0] || "?")}</span>`;
+}
+const who = (nick, recent) => `<span class="who" data-nick="${esc(nick)}">${avatar(nick)}<span class="nm">${esc(nick)}</span></span>${recent ? '<span class="new">NEW</span>' : ""}`;
+const rankBadge = r => `<span class="rank${r <= 3 ? " r" + r : ""}">${r}</span>`;
+// 직전 기록: 최초 수집 이후 1위가 바뀐 코스만 있음
+const prevCell = r => r.prev
+  ? `<span class="prev" title="${esc(r.prev.nick)} · ${esc(r.prev.car)} · ${fmtDate(r.prev.at)} 확인"><s>${esc(r.prev.nick)}</s><span class="mono">${fmtMs(r.prev.ms)}</span>${r.gain != null ? `<span class="gain mono${r.gain <= 0 ? " slower" : ""}">${fmtGain(r.gain)}</span>` : ""}</span>`
+  : `<span class="muted">-</span>`;
+
+// ---------------------------------------------------------------- 렌더
+function render() {
+  const rows = filtered();
+  const q = state.q.trim().toLowerCase();
+  const hit = r => !q || r.nick.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.prev && r.prev.nick.toLowerCase().includes(q));
+  const ds = drivers(rows);
+  $("#resetBtn").classList.toggle("hidden", !(state.zone || state.start || state.end || state.q));
+  $$("#zoneChips .chip").forEach(b => b.classList.toggle("on", b.dataset.zone === state.zone));
+
+  // KPI
+  const changed = rows.filter(r => r.prev);
+  const recent = rows.filter(r => r.recent);
+  $("#kCourses").innerHTML = `${rows.length.toLocaleString()}<small>코스</small>`;
+  $("#kHolders").innerHTML = `${ds.length.toLocaleString()}<small>명</small>`;
+  $("#kNew").innerHTML = `${recent.length.toLocaleString()}<small>코스</small>`;
+  $("#kNewL").textContent = `최근 24시간 갱신 · 누적 ${changed.length}`;
+  const fast = rows.reduce((m, r) => r.ms != null && (!m || r.ms < m.ms) ? r : m, null);
+  $("#kFast").textContent = fast ? fmtMs(fast.ms) : "-";
+  $("#kFastL").textContent = fast ? `최단 · ${fast.start} → ${fast.end}` : "최단 기록";
+
+  renderPodium(ds);
+  renderBars(ds.slice(0, 15));
+  renderDonut(rows);
+  renderZoneStack(rows);
+
+  // 닉네임 순위
+  const dShown = sortRows(ds.filter(d => !q || d.nick.toLowerCase().includes(q) || d.car.toLowerCase().includes(q)), state.sort.tDrivers);
+  const dMax = Math.max(1, ...dShown.map(d => d.n));
+  $("#cDrivers").textContent = dShown.length;
+  $("#tDrivers tbody").innerHTML = dShown.length ? dShown.map(d => `
+    <tr class="click" data-nick="${esc(d.nick)}">
+      <td>${rankBadge(d.rank)}</td><td>${who(d.nick)}</td><td class="r mono"><b>${d.n}</b></td>
+      <td><span class="share"><span class="mini"><i style="width:${pct(d.n, dMax)}%"></i></span><span class="mono muted">${(d.share * 100).toFixed(1)}%</span></span></td>
+      <td>${d.zoneList.map(([z, n]) => `<span class="tag">${esc(z)} ${n}</span>`).join("")}</td>
+      <td>${esc(d.car) || "-"}</td><td class="r mono time">${fmtMs(d.fastest)}</td>
+    </tr>`).join("") : `<tr><td colspan="7" class="empty">조건에 맞는 드라이버가 없습니다</td></tr>`;
+
+  // 코스 목록
+  const cShown = sortRows(rows.filter(hit), state.sort.tCourses);
+  $("#cCourses").textContent = cShown.length;
+  $("#tCourses tbody").innerHTML = cShown.length ? cShown.map(r => `
+    <tr><td><span class="tag">${esc(r.zone)}</span></td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
+    <td>${who(r.nick, r.recent)}</td><td>${esc(r.car)}</td><td class="r mono time">${fmtMs(r.ms)}</td>
+    <td>${prevCell(r)}</td><td class="r muted mono">${fmtDate(r.capturedAt).slice(0, 5)}</td></tr>`).join("")
+    : `<tr><td colspan="8" class="empty">조건에 맞는 코스가 없습니다</td></tr>`;
+
+  // 기록 갱신 (직전 기록이 있는 코스)
+  const chShown = sortRows(changed.filter(hit), state.sort.tChanges);
+  $("#cChanges").textContent = chShown.length;
+  $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(r => `
+    <tr><td class="muted mono">${fmtDate(r.capturedAt)}</td><td><span class="tag">${esc(r.zone)}</span></td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
+    <td>${who(r.nick, r.recent)}</td><td class="r mono time">${fmtMs(r.ms)}</td><td>${prevCell(r)}</td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀐 코스가 여기에 표시됩니다.</td></tr>`;
+
+  $$("table").forEach(markSorted);
+  if (state.nick) renderDrawer();
+}
+
+function renderPodium(ds) {
+  const medal = ["gold", "silver", "bronze"];
+  $("#podium").innerHTML = ds.length ? ds.slice(0, 3).map((d, i) => `
+    <div class="pod p${i + 1}" data-nick="${esc(d.nick)}" role="button" tabindex="0">
+      <div class="place" style="color:var(--${medal[i]})">${i + 1}${["ST", "ND", "RD"][i]}</div>
+      <svg class="trophy" style="color:var(--${medal[i]})" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+      <div class="name">${esc(d.nick)}</div>
+      <div class="n mono">${d.n}<small>코스</small></div>
+      <div class="sub">점유율 ${(d.share * 100).toFixed(1)}% · ${esc(d.car)}</div>
+    </div>`).join("") : `<div class="empty" style="grid-column:1/-1">데이터 없음</div>`;
+}
+
+function renderBars(top) {
+  const max = top[0]?.n || 1;
+  $("#barChart").innerHTML = top.length ? top.map(d => `
+    <div class="bar-row" data-nick="${esc(d.nick)}" data-tip="<b>${esc(d.nick)}</b>${d.n}코스 · 점유율 ${(d.share * 100).toFixed(1)}%<br>주 차량 ${esc(d.car)}">
+      <span class="rk mono">${d.rank}</span><span class="nm">${esc(d.nick)}</span>
+      <span class="track"><span class="fill" style="width:${pct(d.n, max) * 0.85}%"></span><span class="val mono">${d.n}</span></span>
+    </div>`).join("") : `<div class="empty">데이터 없음</div>`;
+}
+
+function renderDonut(rows) {
+  const counts = countBy(rows, r => r.car || "알 수 없음");
+  const total = rows.length;
+  // 4종까지 개별 색, 나머지는 '기타'로 묶는다
+  const slices = counts.slice(0, 4).map(([k, n], i) => ({ k, n, c: `var(${PALETTE[i]})` }));
+  const rest = counts.slice(4).reduce((s, [, n]) => s + n, 0);
+  if (rest) slices.push({ k: `기타 ${counts.length - 4}종`, n: rest, c: "var(--c-other)" });
+  const R = 60, C = 2 * Math.PI * R, GAP = slices.length > 1 ? 2 : 0;
+  let off = 0;
+  const segs = slices.map(s => {
+    const len = Math.max(C * s.n / total - GAP, 0.6);
+    const el = `<circle class="seg" cx="80" cy="80" r="${R}" stroke="${s.c}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}"
+      data-tip="<b>${esc(s.k)}</b>${s.n}코스 · ${pct(s.n, total).toFixed(1)}%"></circle>`;
+    off += C * s.n / total;
+    return el;
+  }).join("");
+  $("#donut").innerHTML = total ? `
+    <div class="donut"><svg viewBox="0 0 160 160" role="img" aria-label="차량 점유율">${segs}</svg>
+      <div class="center"><div><b class="mono">${total.toLocaleString()}</b><span>코스</span></div></div></div>
+    <ul class="legend">${slices.map(s => `<li><i class="dot" style="background:${s.c}"></i><span>${esc(s.k)}</span><b class="mono">${s.n}</b><span class="pct mono">${pct(s.n, total).toFixed(1)}%</span></li>`).join("")}</ul>`
+    : `<div class="empty" style="width:100%">데이터 없음</div>`;
+}
+
+function renderZoneStack(rows) {
+  const zones = ZONE_ORDER.filter(z => rows.some(r => r.zone === z));
+  const tops = [...colorOf.keys()];
+  const legend = tops.map(n => `<span><i style="background:${colorOf.get(n)}"></i>${esc(n)}</span>`).join("") + `<span><i style="background:var(--c-other)"></i>그 외</span>`;
+  $("#zoneStack").innerHTML = zones.length ? `<div class="stack-legend">${legend}</div>` + zones.map(z => {
+    const zr = rows.filter(r => r.zone === z);
+    const parts = tops.map(n => ({ n, v: zr.filter(r => r.nick === n).length, c: colorOf.get(n) })).filter(p => p.v);
+    const other = zr.length - parts.reduce((s, p) => s + p.v, 0);
+    if (other) parts.push({ n: "그 외", v: other, c: "var(--c-other)" });
+    return `<div class="stack-row"><span class="z">${esc(z)}</span>
+      <div class="stack">${parts.map(p => `<div style="flex:${p.v};background:${p.c}"${p.n !== "그 외" ? ` data-nick="${esc(p.n)}"` : ""}
+        data-tip="<b>${esc(z)} · ${esc(p.n)}</b>${p.v}코스 · ${pct(p.v, zr.length).toFixed(1)}%"></div>`).join("")}</div>
+      <span class="n mono">${zr.length}</span></div>`;
+  }).join("") : `<div class="empty">데이터 없음</div>`;
+}
+
+function markSorted(t) {
+  const s = state.sort[t.id];
+  if (!s) return;
+  t.querySelectorAll("th").forEach(th => {
+    th.classList.toggle("sorted", th.dataset.k === s.k);
+    th.classList.toggle("asc", th.dataset.k === s.k && s.asc);
+  });
+}
+
+// ---------------------------------------------------------------- 드라이버 상세
+function openDrawer(nick) {
+  state.nick = nick;
+  window.history.replaceState(null, "", "#" + encodeURIComponent(nick));
+  renderDrawer();
+  $("#drawer").classList.add("open");
+  $("#overlay").classList.add("open");
+  $("#drawer").setAttribute("aria-hidden", "false");
+}
+
+function closeDrawer() {
+  state.nick = null;
+  window.history.replaceState(null, "", location.pathname + location.search);
+  $("#drawer").classList.remove("open");
+  $("#overlay").classList.remove("open");
+  $("#drawer").setAttribute("aria-hidden", "true");
+}
+
+function renderDrawer() {
+  const d = drivers(filtered()).find(x => x.nick === state.nick);
+  const all = drivers(records).find(x => x.nick === state.nick);
+  $("#dAv").outerHTML = avatar(state.nick, "dAv");
+  $("#dName").textContent = state.nick;
+  if (!d) {
+    $("#dSub").textContent = all ? `현재 필터에는 보유 코스가 없습니다 (전체 ${all.n}코스)` : "보유 코스 없음";
+    ["#dStats", "#dZones", "#dCars", "#tDetail tbody"].forEach(s => $(s).innerHTML = "");
+    return;
+  }
+  const filteredView = all && all.n !== d.n;
+  $("#dSub").innerHTML = `${d.rank}위 · ${esc(d.car)} 주력${filteredView ? ` · 전체 ${all.n}코스 중 필터 ${d.n}코스` : ""}`;
+  const taken = d.rows.filter(r => r.prev).length;
+  $("#dStats").innerHTML = [["보유 코스", d.n], ["점유율", (d.share * 100).toFixed(1) + "%"], ["최단 기록", fmtMs(d.fastest)], ["갱신해서 차지", taken]]
+    .map(([l, v]) => `<div class="stat"><b class="mono">${v}</b><span>${l}</span></div>`).join("");
+  const zmax = Math.max(...d.zoneList.map(([, n]) => n));
+  const color = colorOf.get(d.nick) || "var(--accent)";
+  $("#dZones").innerHTML = d.zoneList.map(([z, n]) => `<div class="zbar"><span>${esc(z)}</span><span class="t"><i style="width:${pct(n, zmax)}%;background:${color}"></i></span><span class="mono" style="text-align:right">${n}</span></div>`).join("");
+  $("#dCars").innerHTML = countBy(d.rows, r => r.car).map(([c, n]) => `<span class="tag">${esc(c)} <b>${n}</b></span>`).join("");
+  $("#tDetail tbody").innerHTML = sortRows([...d.rows], state.sort.tDetail).map(r => `<tr><td><span class="tag">${esc(r.zone)}</span></td>
+    <td>${esc(r.start)}</td><td>${esc(r.end)}</td><td class="r mono time">${fmtMs(r.ms)}${r.recent ? '<span class="new">NEW</span>' : ""}</td><td>${prevCell(r)}</td><td>${esc(r.car)}</td></tr>`).join("");
+  markSorted($("#tDetail"));
+}
+
+// ---------------------------------------------------------------- 이벤트
+$("#zoneChips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  state.zone = b.dataset.zone; fillStarts(); render();
+});
+$("#fStart").addEventListener("change", e => { state.start = e.target.value; fillEnds(); render(); });
+$("#fEnd").addEventListener("change", e => { state.end = e.target.value; render(); });
+$("#fSearch").addEventListener("input", e => { state.q = e.target.value; render(); });
+$("#resetBtn").addEventListener("click", () => {
+  Object.assign(state, { zone: "", start: "", end: "", q: "" }); $("#fSearch").value = ""; fillStarts(); render();
+});
+$$(".tab").forEach(t => t.addEventListener("click", () => {
+  $$(".tab").forEach(x => x.classList.toggle("on", x === t));
+  $$("[data-panel]").forEach(p => p.classList.toggle("hidden", p.dataset.panel !== t.dataset.tab));
+}));
+document.addEventListener("click", e => {
+  const th = e.target.closest("th[data-k]");
+  if (th) {
+    const id = th.closest("table").id, k = th.dataset.k, cur = state.sort[id];
+    state.sort[id] = { k, asc: cur.k === k ? !cur.asc : !!th.dataset.asc };
+    id === "tDetail" ? renderDrawer() : render();
+    return;
+  }
+  const n = e.target.closest("[data-nick]");
+  if (n && !e.target.closest("#drawer")) openDrawer(n.dataset.nick);
+});
+$("#podium").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset.nick) openDrawer(e.target.dataset.nick); });
+$("#overlay").addEventListener("click", closeDrawer);
+$("#dClose").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && state.nick) closeDrawer(); });
+
+// 툴팁 (data-tip 이 있는 모든 마크)
+const tip = $("#tip");
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest("[data-tip]");
+  if (!t) { tip.style.display = "none"; return; }
+  tip.innerHTML = t.dataset.tip; tip.style.display = "block";
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px";
+  tip.style.top = Math.min(e.clientY + 16, innerHeight - tip.offsetHeight - 8) + "px";
+});
+
+// 필터 바가 상단에 붙으면 아래 테두리 표시
+new IntersectionObserver(([en]) => $("#filterbar").classList.toggle("stuck", en.intersectionRatio < 1),
+  { threshold: [1], rootMargin: "-1px 0px 0px 0px" }).observe($("#filterbar"));
+
+// 테마 (선택은 이 브라우저에만 저장)
+function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+try { applyTheme(localStorage.getItem("ctr-theme")); } catch (_) {}
+$("#themeBtn").addEventListener("click", () => {
+  const cur = document.documentElement.dataset.theme;
+  const dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(dark ? "light" : "dark");
+  try { localStorage.setItem("ctr-theme", dark ? "light" : "dark"); } catch (_) {}
+});
+
+// 파일 불러오기 / 드래그&드롭
+function readFile(f) { f.text().then(t => load(JSON.parse(t))).catch(err => alert("JSON을 읽을 수 없습니다: " + err.message)); }
+$("#openBtn").addEventListener("click", () => $("#file").click());
+$("#file").addEventListener("change", e => e.target.files[0] && readFile(e.target.files[0]));
+const drop = $("#drop");
+document.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+document.addEventListener("dragleave", e => { if (!e.relatedTarget) drop.classList.remove("over"); });
+document.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && readFile(e.dataTransfer.files[0]); });
+
+// ---------------------------------------------------------------- 시작
+async function fetchJson(name) {
+  const r = await fetch(`${name}?v=${Date.now()}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(`${name} ${r.status}`);
+  return r.json();
+}
+function openHash() { if (location.hash.length > 1) openDrawer(decodeURIComponent(location.hash.slice(1))); }
+if (EMBEDDED) {
+  load(EMBEDDED);
+  openHash();
+} else if (location.protocol.startsWith("http")) {
+  // GitHub Pages 등 웹 서버: 같은 폴더의 ranks.json
+  drop.classList.add("hidden");
+  fetchJson("ranks.json").then(db => { $("#openBtn").classList.add("hidden"); load(db); openHash(); })
+    .catch(() => drop.classList.remove("hidden"));
+}
+</script>
+</body>
+</html>
