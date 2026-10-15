@@ -366,7 +366,7 @@ footer .credit .who { font-weight: 700; color: var(--text); }
         <table id="tCourses"><thead><tr>
           <th data-k="zone" data-asc="1" class="sorted asc">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
           <th data-k="nick" data-asc="1">보유자</th><th data-k="car" data-asc="1">차량</th><th data-k="ms" data-asc="1" class="r">기록</th>
-          <th data-k="gain">직전 기록</th><th data-k="capturedAt" class="r" title="지금 1위 기록이 처음 수집된 날">최초 수집</th>
+          <th data-k="gain">직전 기록</th>
         </tr></thead><tbody></tbody></table>
       </div>
       <div class="period hidden" data-panel="changes">
@@ -409,7 +409,7 @@ footer .credit .who { font-weight: 700; color: var(--text); }
       <div class="table-wrap" style="max-height:none">
         <table id="tDetail"><thead><tr>
           <th data-k="zone" data-asc="1">지역</th><th data-k="start" data-asc="1">코스</th>
-          <th data-k="ms" data-asc="1" class="r sorted asc">기록</th><th data-k="gain">직전 기록</th><th data-k="capturedAt" class="r" title="지금 1위 기록이 처음 수집된 날">최초 수집</th>
+          <th data-k="ms" data-asc="1" class="r sorted asc">기록</th><th data-k="gain">직전 기록</th>
         </tr></thead><tbody></tbody></table>
       </div>
     </div>
@@ -463,7 +463,7 @@ function load(db) {
       prev, gain, recent: !!prev && Date.parse(c.capturedAt) >= runStart,
     };
   });
-  // 집계 시작일: 가장 이른 수집 날짜. 그날 수집된 기록은 그 전부터 있던 것이라 '이전'으로 표시한다
+  // 집계 시작일: 가장 이른 수집 날짜 (머리말·기록 갱신 탭에 표시)
   firstDay = records.reduce((m, r) => r.capturedAt && (!m || r.capturedAt < m) ? r.capturedAt : m, "").slice(0, 10);
   $("#since").textContent = firstDay ? `${firstDay.replace(/-/g, ".")}부터 집계` : "";
   // 전체 상위 보유자는 어느 필터에서든 같은 색. 지역·코스 필터의 TOP 5 에 새로 드는 사람은 남는 색을 받는다
@@ -590,15 +590,6 @@ function avatar(nick, id) {
 }
 const who = (nick, recent) => `<span class="who" data-nick="${esc(nick)}">${avatar(nick)}<span class="nm">${esc(nick)}</span></span>${recent ? '<span class="new">NEW</span>' : ""}`;
 const rankBadge = r => `<span class="rank${r <= 3 ? " r" + r : ""}">${r}</span>`;
-// 최초 수집: 지금 1위 기록을 처음 확인한 날 (같은 기록이면 다시 수집해도 그대로)
-const firstSeenCell = r => {
-  const d = (r.capturedAt || "").slice(0, 10);
-  if (!d) return `<td class="r muted">-</td>`;
-  const md = d.slice(5).replace("-", "."), y = d.slice(0, 4) !== String(new Date(refTime).getFullYear()) ? d.slice(2, 4) + "." : "";
-  return d === firstDay
-    ? `<td class="r muted mono" title="집계를 시작한 ${d} 이전부터 있던 기록">${y}${md} 이전</td>`
-    : `<td class="r mono" title="${fmtDate(r.capturedAt)} 처음 수집">${y}${md}</td>`;
-};
 // 직전 기록: 최초 수집 이후 1위가 바뀐 코스만 있음
 const prevCell = r => r.prev
   ? `<span class="prev" title="${esc(r.prev.nick)} · ${esc(r.prev.car)} · ${fmtDate(r.prev.at)} 확인"><s>${esc(r.prev.nick)}</s><span class="mono">${fmtMs(r.prev.ms)}</span>${r.gain != null ? `<span class="gain mono${r.gain <= 0 ? " slower" : ""}">${fmtGain(r.gain)}</span>` : ""}</span>`
@@ -669,13 +660,13 @@ function render() {
   $("#tCourses tbody").innerHTML = cShown.length ? cShown.map(r => `
     <tr><td><span class="tag" data-zone="${esc(r.zone)}" title="${esc(r.zone)}만 보기">${esc(r.zone)}</span></td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
     <td>${who(r.nick, r.recent)}</td><td>${esc(r.car)}</td><td class="r mono time">${fmtMs(r.ms)}</td>
-    <td>${prevCell(r)}</td>${firstSeenCell(r)}</tr>`).join("")
-    : `<tr><td colspan="8" class="empty">조건에 맞는 코스가 없습니다</td></tr>`;
+    <td>${prevCell(r)}</td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">조건에 맞는 코스가 없습니다</td></tr>`;
 
   // 기록 갱신: 기간 칩 + 현재 필터
   $$("#periodChips .chip").forEach(b => b.classList.toggle("on", b.dataset.period === state.period));
   const rs = new Date(runStart), p2 = n => String(n).padStart(2, "0");
-  $("#runInfo").textContent = `이번 수집 시작 ${p2(rs.getMonth() + 1)}.${p2(rs.getDate())} ${p2(rs.getHours())}:${p2(rs.getMinutes())}` +
+  $("#runInfo").textContent = (firstDay ? `${firstDay.replace(/-/g, ".")}부터 집계 · ` : "") + `이번 수집 시작 ${p2(rs.getMonth() + 1)}.${p2(rs.getDate())} ${p2(rs.getHours())}:${p2(rs.getMinutes())}` +
     (hist.length ? ` · 전체 이력 ${hist.length}건` : "");
   const inFilter = h => (!state.zone || h.zone === state.zone) && (!state.start || startKey(h) === state.start) && (!state.end || h.end === state.end);
   const chShown = sortRows(changes.filter(h => inPeriod(h, state.period) && inFilter(h) && hit(h)), state.sort.tChanges);
@@ -807,7 +798,7 @@ function renderDrawer() {
   $("#dZones").innerHTML = d.zoneList.map(([z, n]) => `<div class="zbar"><span>${esc(z)}</span><span class="t"><i style="width:${pct(n, zmax)}%;background:${color}"></i></span><span class="mono" style="text-align:right">${n}</span></div>`).join("");
   $("#dCars").innerHTML = countBy(d.rows, r => r.car).map(([c, n]) => `<span class="tag">${esc(c)} <b>${n}</b></span>`).join("");
   $("#tDetail tbody").innerHTML = sortRows([...d.rows], state.sort.tDetail).map(r => `<tr><td><span class="tag" data-zone="${esc(r.zone)}" title="${esc(r.zone)}만 보기">${esc(r.zone)}</span></td>
-    <td class="route">${esc(r.start)} <span class="muted">→</span> ${esc(r.end)}</td><td class="r mono time">${fmtMs(r.ms)}${r.recent ? '<span class="new">NEW</span>' : ""}</td><td>${prevCell(r)}</td>${firstSeenCell(r)}</tr>`).join("");
+    <td class="route">${esc(r.start)} <span class="muted">→</span> ${esc(r.end)}</td><td class="r mono time">${fmtMs(r.ms)}${r.recent ? '<span class="new">NEW</span>' : ""}</td><td>${prevCell(r)}</td></tr>`).join("");
   markSorted($("#tDetail"));
 }
 
