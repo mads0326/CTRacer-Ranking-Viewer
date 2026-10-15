@@ -627,7 +627,9 @@ function render() {
   $$("#zoneChips .chip").forEach(b => b.classList.toggle("on", b.dataset.zone === state.zone));
 
   // KPI
-  const changes = changeRows();
+  // 갱신 이력도 지역·출발지·도착지 필터를 따른다
+  const inFilter = h => (!state.zone || h.zone === state.zone) && (!state.start || startKey(h) === state.start) && (!state.end || h.end === state.end);
+  const changes = changeRows().filter(inFilter);
   const recent = changes.filter(h => inPeriod(h, "run"));
   $("#kCourses").innerHTML = `${rows.length.toLocaleString()}<small>코스</small>`;
   $("#kHolders").innerHTML = `${ds.length.toLocaleString()}<small>명</small>`;
@@ -667,9 +669,8 @@ function render() {
   $$("#periodChips .chip").forEach(b => b.classList.toggle("on", b.dataset.period === state.period));
   const rs = new Date(runStart), p2 = n => String(n).padStart(2, "0");
   $("#runInfo").textContent = (firstDay ? `${firstDay.replace(/-/g, ".")}부터 집계 · ` : "") + `이번 수집 시작 ${p2(rs.getMonth() + 1)}.${p2(rs.getDate())} ${p2(rs.getHours())}:${p2(rs.getMinutes())}` +
-    (hist.length ? ` · 전체 이력 ${hist.length}건 (${new Set(hist.map(h => h.key)).size}코스, 한 코스가 여러 번 바뀐 것 포함)` : "");
-  const inFilter = h => (!state.zone || h.zone === state.zone) && (!state.start || startKey(h) === state.start) && (!state.end || h.end === state.end);
-  const chShown = sortRows(changes.filter(h => inPeriod(h, state.period) && inFilter(h) && hit(h)), state.sort.tChanges);
+    ` · ${state.zone || state.start || state.end ? "이 필터의 " : ""}전체 이력 ${changes.length}건 (${new Set(changes.map(h => h.zone + "|" + h.start + "|" + h.end)).size}코스, 한 코스가 여러 번 바뀐 것 포함)`;
+  const chShown = sortRows(changes.filter(h => inPeriod(h, state.period) && hit(h)), state.sort.tChanges);
   $("#cChanges").textContent = chShown.length;  // 탭 숫자 = 지금 표에 보이는 건수 (기간·필터 반영)
   const emptyMsg = { run: "이번 수집에서 갱신된 기록이 없습니다", "24h": "최근 24시간 동안 갱신된 기록이 없습니다",
     "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다" }[state.period];
