@@ -152,7 +152,12 @@ main { padding: 20px 0 48px; display: grid; grid-template-columns: minmax(0, 1fr
 .legend .pct { color: var(--muted); font-size: 12px; width: 48px; text-align: right; }
 
 /* stacked */
-.stack-legend { display: flex; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12.5px; color: var(--text-2); }
+.stack-legend { display: flex; gap: 4px 12px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--text-2); }
+.zblock { padding: 12px 0; border-top: 1px solid var(--border); }
+.zblock:first-child { border-top: 0; padding-top: 0; }
+.zblock:last-child { padding-bottom: 0; }
+.zhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.zhead .n { font-size: 12px; color: var(--muted); }
 .stack-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .stack-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .stack-legend span[data-nick] { cursor: pointer; }
@@ -490,11 +495,13 @@ function countBy(rows, f) {
 }
 
 // 현재 필터의 TOP 5 에 색 칸을 나눠 준다: 전체 상위 보유자는 자기 칸 그대로, 나머지는 비어 있는 칸을 앞에서부터
-function assignSlots(top) {
+// spare 를 주면 전체 상위자 색과 겹치지 않는 칸(6~8번)부터 쓴다 (지역별 차트처럼 여러 막대에 같은 색이 나올 때)
+function assignSlots(top, spare = false) {
   const m = new Map(), used = new Set();
   for (const d of top) if (globalSlot.has(d.nick)) { m.set(d.nick, globalSlot.get(d.nick)); used.add(globalSlot.get(d.nick)); }
-  let s = 0;
-  for (const d of top) if (!m.has(d.nick)) { while (used.has(s)) s++; m.set(d.nick, s); used.add(s); }
+  const order = [...Array(PALETTE.length).keys()];
+  if (spare) order.push(...order.splice(0, TOP_N));
+  for (const d of top) if (!m.has(d.nick)) { const s = order.find(i => !used.has(i)); m.set(d.nick, s); used.add(s); }
   return m;
 }
 
@@ -652,7 +659,7 @@ function render() {
   renderPodium(ds);
   renderBars(ds.slice(0, 15));
   renderDonut(rows);
-  renderZoneStack(rows, ds.slice(0, TOP_N));
+  renderZoneStack(rows);
 
   // 닉네임 순위
   const dShown = sortRows(ds.filter(d => !q || d.nick.toLowerCase().includes(q) || d.car.toLowerCase().includes(q)), state.sort.tDrivers);
@@ -741,25 +748,28 @@ function renderDonut(rows) {
     : `<div class="empty" style="width:100%">데이터 없음</div>`;
 }
 
-// 지역별 1위 점유: 범례·색은 현재 필터의 TOP 5 기준 (부산만 보면 부산 TOP 5)
-function renderZoneStack(rows, top) {
+// 지역별 1위 점유: 지역마다 그 지역 TOP 5 로 막대·범례를 따로 그린다.
+// 전체 상위 보유자는 어느 지역에서든 같은 색, 그 지역에서만 TOP 5 인 사람은 남는 색
+function renderZoneStack(rows) {
   const zones = ZONE_ORDER.filter(z => rows.some(r => r.zone === z));
-  const one = zones.length === 1;
-  $("#zoneTitle").textContent = one ? `${zones[0]} 1위 점유` : "지역별 1위 점유";
-  $("#zoneDesc").textContent = `${one ? "이 지역" : "현재 필터"} 보유 코스 TOP ${TOP_N} · 나머지는 '그 외'로 묶음`;
-  const legend = top.map(d => `<span data-nick="${esc(d.nick)}"><i style="background:${slotFill(colorOf.get(d.nick))}"></i>${esc(d.nick)} <b class="mono">${d.n}</b></span>`).join("")
-    + (rows.some(r => !colorOf.has(r.nick)) ? `<span><i style="background:var(--c-other)"></i>그 외</span>` : "");
-  $("#zoneStack").innerHTML = zones.length ? `<div class="stack-legend">${legend}</div>` + zones.map(z => {
+  $("#zoneTitle").textContent = zones.length === 1 ? `${zones[0]} 1위 점유` : "지역별 1위 점유";
+  $("#zoneDesc").textContent = `지역마다 보유 코스 TOP ${TOP_N} · 나머지는 '그 외'로 묶음`;
+  $("#zoneStack").innerHTML = zones.length ? zones.map(z => {
     const zr = rows.filter(r => r.zone === z);
-    const parts = top.map(d => ({ n: d.nick, v: zr.filter(r => r.nick === d.nick).length, c: slotFill(colorOf.get(d.nick)) })).filter(p => p.v);
-    const rest = countBy(zr.filter(r => !colorOf.has(r.nick)), r => r.nick);
+    const counts = countBy(zr, r => r.nick);
+    const top = counts.slice(0, TOP_N).map(([nick, v]) => ({ nick, v }));
+    const slot = assignSlots(top, true);
+    const parts = top.map(d => ({ n: d.nick, v: d.v, c: slotFill(slot.get(d.nick)) }));
+    const rest = counts.slice(TOP_N);
     const other = rest.reduce((s, [, n]) => s + n, 0);
     if (other) parts.push({ n: "그 외", v: other, c: "var(--c-other)",
       more: `${rest.length}명 · ` + rest.slice(0, 3).map(([n, v]) => `${esc(n)} ${v}`).join(", ") + (rest.length > 3 ? " …" : "") });
-    return `<div class="stack-row"><span class="z">${esc(z)}</span>
+    return `<div class="zblock">
+      <div class="zhead"><span class="tag" data-zone="${esc(z)}" title="${esc(z)}만 보기">${esc(z)}</span><span class="n mono">${zr.length}코스</span></div>
       <div class="stack">${parts.map(p => `<div style="flex:${p.v};background:${p.c}"${p.more ? "" : ` data-nick="${esc(p.n)}"`}
         data-tip="<b>${esc(z)} · ${esc(p.n)}</b>${p.v}코스 · ${pct(p.v, zr.length).toFixed(1)}%${p.more ? `<br>${p.more}` : ""}"></div>`).join("")}</div>
-      <span class="n mono">${zr.length}</span></div>`;
+      <div class="stack-legend">${parts.map(p => `<span${p.more ? ` data-tip="${p.more}"` : ` data-nick="${esc(p.n)}"`}><i style="background:${p.c}"></i>${esc(p.n)} <b class="mono">${p.v}</b></span>`).join("")}</div>
+    </div>`;
   }).join("") : `<div class="empty">데이터 없음</div>`;
 }
 
