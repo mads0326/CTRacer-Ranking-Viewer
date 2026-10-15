@@ -392,7 +392,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 40px; }
 const EMBEDDED = /*__RANK_DATA__*/null;
 const ZONE_ORDER = ["강북", "강남", "부산", "상해", "맨하탄"];
 const PALETTE = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6", "--c7", "--c8"];  // 상위 보유자 색 (순서 고정, 순환하지 않음)
-const TOP_N = 10;  // 차트에서 닉네임으로 보여 줄 인원. 9·10번째는 1·2번 색에 빗금을 더해 구분한다
+const TOP_N = 5;  // 차트에서 닉네임으로 보여 줄 인원 (8명을 넘기면 9번째부터 1·2번 색에 빗금을 더해 구분)
 const slotSolid = i => `var(${PALETTE[i % PALETTE.length]})`;
 const slotFill = i => i < PALETTE.length ? slotSolid(i)
   : `repeating-linear-gradient(${i === PALETTE.length ? 45 : 135}deg, ${slotSolid(i)} 0 3px, color-mix(in srgb, ${slotSolid(i)} 30%, var(--surface)) 3px 6px)`;
@@ -430,7 +430,7 @@ function load(db) {
       prev, gain, recent: !!prev && Date.parse(c.capturedAt) >= runStart,
     };
   });
-  // 전체 상위 보유자는 어느 필터에서든 같은 색. 지역·코스 필터의 TOP 10 에 새로 드는 사람은 남는 색을 받는다
+  // 전체 상위 보유자는 어느 필터에서든 같은 색. 지역·코스 필터의 TOP 5 에 새로 드는 사람은 남는 색을 받는다
   globalSlot = new Map(countBy(records, r => r.nick).slice(0, TOP_N).map(([n], i) => [n, i]));
   restoreUrl();
   updateStamp();
@@ -448,7 +448,7 @@ function countBy(rows, f) {
   return [...m.entries()].sort((a, b) => b[1] - a[1] || byName(a[0], b[0]));
 }
 
-// 현재 필터의 TOP 10 에 색 칸을 나눠 준다: 전체 상위 보유자는 자기 칸 그대로, 나머지는 비어 있는 칸을 앞에서부터
+// 현재 필터의 TOP 5 에 색 칸을 나눠 준다: 전체 상위 보유자는 자기 칸 그대로, 나머지는 비어 있는 칸을 앞에서부터
 function assignSlots(top) {
   const m = new Map(), used = new Set();
   for (const d of top) if (globalSlot.has(d.nick)) { m.set(d.nick, globalSlot.get(d.nick)); used.add(globalSlot.get(d.nick)); }
@@ -689,7 +689,7 @@ function renderDonut(rows) {
     : `<div class="empty" style="width:100%">데이터 없음</div>`;
 }
 
-// 지역별 1위 점유: 범례·색은 현재 필터의 TOP 10 기준 (부산만 보면 부산 TOP 10)
+// 지역별 1위 점유: 범례·색은 현재 필터의 TOP 5 기준 (부산만 보면 부산 TOP 5)
 function renderZoneStack(rows, top) {
   const zones = ZONE_ORDER.filter(z => rows.some(r => r.zone === z));
   const one = zones.length === 1;
