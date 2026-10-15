@@ -375,6 +375,7 @@ footer .credit .who { font-weight: 700; color: var(--text); }
           <button type="button" class="chip" data-period="24h">24시간</button>
           <button type="button" class="chip" data-period="7d">7일</button>
           <button type="button" class="chip" data-period="all">전체</button>
+          <button type="button" class="chip hidden" data-period="rename" title="기록은 같고 닉네임만 바뀐 경우 (갱신 건수에서 제외)">닉네임 변경</button>
         </div>
         <span class="run" id="runInfo"></span>
       </div>
@@ -455,12 +456,14 @@ function load(db) {
   // '이번 수집' = 마지막 수집 시작 이후 확인된 갱신. 예전 데이터(runStart 없음)는 업데이트 24시간 이내로 대신한다
   runStart = db.runStart ? Date.parse(db.runStart) : refTime - RECENT_MS;
   records = Object.values(db.courses).filter(c => c.best && c.best.nick).map(c => {
-    const prev = c.prev && c.prev.nick ? c.prev : null;
+    // 기록은 그대로인데 닉네임만 바뀐 경우는 갱신이 아니라 닉네임 변경으로 따로 둔다
+    const renamedFrom = isRename(c.prev, c.best) ? c.prev.nick : "";
+    const prev = c.prev && c.prev.nick && !renamedFrom ? c.prev : null;
     const gain = prev && prev.ms != null && c.best.ms != null ? prev.ms - c.best.ms : null;
     return {
       zone: c.zoneName || "", start: c.startName || "", end: c.endName || "",
       nick: c.best.nick, car: c.best.car || "", ms: c.best.ms, capturedAt: c.capturedAt || "",
-      prev, gain, recent: !!prev && Date.parse(c.capturedAt) >= runStart,
+      prev, gain, renamedFrom, recent: !!prev && Date.parse(c.capturedAt) >= runStart,
     };
   });
   // 집계 시작일: 가장 이른 수집 날짜 (머리말·기록 갱신 탭에 표시)
@@ -591,7 +594,10 @@ function avatar(nick, id) {
 const who = (nick, recent) => `<span class="who" data-nick="${esc(nick)}">${avatar(nick)}<span class="nm">${esc(nick)}</span></span>${recent ? '<span class="new">NEW</span>' : ""}`;
 const rankBadge = r => `<span class="rank${r <= 3 ? " r" + r : ""}">${r}</span>`;
 // 직전 기록: 최초 수집 이후 1위가 바뀐 코스만 있음
-const prevCell = r => r.prev
+const isRename = (o, n) => !!(o && n && o.nick && o.ms != null && o.ms === n.ms && o.nick !== n.nick);
+const prevCell = r => r.rename || r.renamedFrom
+  ? `<span class="prev" title="같은 기록 ${fmtMs(r.ms)} · 닉네임만 바뀜"><span>닉네임 변경 · 이전</span><s>${esc(r.rename ? r.prev.nick : r.renamedFrom)}</s></span>`
+  : r.prev
   ? `<span class="prev" title="${esc(r.prev.nick)} · ${esc(r.prev.car)} · ${fmtDate(r.prev.at)} 확인"><s>${esc(r.prev.nick)}</s><span class="mono">${fmtMs(r.prev.ms)}</span>${r.gain != null ? `<span class="gain mono${r.gain <= 0 ? " slower" : ""}">${fmtGain(r.gain)}</span>` : ""}</span>`
   : `<span class="muted">-</span>`;
 
@@ -602,10 +608,11 @@ function changeRows() {
       const [start, end] = String(h.course || "").split(" → ");
       const gain = h.old.ms != null && h.new.ms != null ? h.old.ms - h.new.ms : null;
       return { at: h.at || "", zone: h.zoneName || "", start: start || "", end: end || "",
-        nick: h.new.nick, car: h.new.car || "", ms: h.new.ms, prev: h.old, gain };
+        nick: h.new.nick, car: h.new.car || "", ms: h.new.ms, prev: h.old, gain, rename: isRename(h.old, h.new) };
     });
   }
-  return records.filter(r => r.prev).map(r => ({ ...r, at: r.capturedAt }));
+  return [...records.filter(r => r.prev).map(r => ({ ...r, at: r.capturedAt })),
+    ...records.filter(r => r.renamedFrom).map(r => ({ ...r, at: r.capturedAt, rename: true, prev: { nick: r.renamedFrom, ms: r.ms } }))];
 }
 
 function inPeriod(h, period) {
@@ -629,7 +636,8 @@ function render() {
   // KPI
   // 갱신 이력도 지역·출발지·도착지 필터를 따른다
   const inFilter = h => (!state.zone || h.zone === state.zone) && (!state.start || startKey(h) === state.start) && (!state.end || h.end === state.end);
-  const changes = changeRows().filter(inFilter);
+  const allChanges = changeRows().filter(inFilter);
+  const changes = allChanges.filter(h => !h.rename), renames = allChanges.filter(h => h.rename);
   const recent = changes.filter(h => inPeriod(h, "run"));
   $("#kCourses").innerHTML = `${rows.length.toLocaleString()}<small>코스</small>`;
   $("#kHolders").innerHTML = `${ds.length.toLocaleString()}<small>명</small>`;
@@ -670,13 +678,17 @@ function render() {
   const rs = new Date(runStart), p2 = n => String(n).padStart(2, "0");
   $("#runInfo").textContent = (firstDay ? `${firstDay.replace(/-/g, ".")}부터 집계 · ` : "") + `이번 수집 시작 ${p2(rs.getMonth() + 1)}.${p2(rs.getDate())} ${p2(rs.getHours())}:${p2(rs.getMinutes())}` +
     ` · ${state.zone || state.start || state.end ? "이 필터의 " : ""}전체 이력 ${changes.length}건 (${new Set(changes.map(h => h.zone + "|" + h.start + "|" + h.end)).size}코스, 한 코스가 여러 번 바뀐 것 포함)`;
-  const chShown = sortRows(changes.filter(h => inPeriod(h, state.period) && hit(h)), state.sort.tChanges);
+  const renameChip = $('#periodChips [data-period="rename"]');
+  renameChip.classList.toggle("hidden", !renames.length && state.period !== "rename");
+  renameChip.textContent = `닉네임 변경 ${renames.length}`;
+  const chShown = sortRows(state.period === "rename" ? renames.filter(hit) : changes.filter(h => inPeriod(h, state.period) && hit(h)), state.sort.tChanges);
   $("#cChanges").textContent = chShown.length;  // 탭 숫자 = 지금 표에 보이는 건수 (기간·필터 반영)
   const emptyMsg = { run: "이번 수집에서 갱신된 기록이 없습니다", "24h": "최근 24시간 동안 갱신된 기록이 없습니다",
-    "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다" }[state.period];
+    "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다",
+    rename: "닉네임이 바뀐 기록이 없습니다" }[state.period];
   $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(h => `
     <tr><td class="muted mono">${fmtDate(h.at)}</td><td><span class="tag" data-zone="${esc(h.zone)}" title="${esc(h.zone)}만 보기">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
-    <td>${who(h.nick, inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td><td>${prevCell(h)}</td></tr>`).join("")
+    <td>${who(h.nick, !h.rename && inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td><td>${prevCell(h)}</td></tr>`).join("")
     : `<tr><td colspan="7" class="empty">${emptyMsg}</td></tr>`;
 
   $$("table").forEach(markSorted);
