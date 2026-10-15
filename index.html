@@ -13,7 +13,7 @@
   --border: #e4e5e9; --text: #0d0e12; --text-2: #50535c; --muted: #8a8d96;
   --accent: #2a78d6; --accent-2: #4a3aa7; --accent-soft: #e6effb;
   --gold: #c99400; --silver: #8a9099; --bronze: #b0652e; --good: #0f8a5f;
-  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c-other: #c9cbd1;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #6250d6; --c8: #e34948; --c-other: #c9cbd1;
   --shadow: 0 1px 2px rgb(16 24 40 / .04), 0 4px 16px rgb(16 24 40 / .06);
   --glass: rgb(244 245 247 / .8);
 }
@@ -24,7 +24,7 @@
     --border: #2b2c33; --text: #f4f5f7; --text-2: #b9bbc3; --muted: #80838d;
     --accent: #3987e5; --accent-2: #9085e9; --accent-soft: #1b2a40;
     --gold: #e6b93d; --silver: #b6bcc4; --bronze: #d8915d; --good: #3ecf8e;
-    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c-other: #4a4c55;
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; --c-other: #4a4c55;
     --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .25);
     --glass: rgb(14 15 18 / .8);
   }
@@ -35,7 +35,7 @@
   --border: #2b2c33; --text: #f4f5f7; --text-2: #b9bbc3; --muted: #80838d;
   --accent: #3987e5; --accent-2: #9085e9; --accent-soft: #1b2a40;
   --gold: #e6b93d; --silver: #b6bcc4; --bronze: #d8915d; --good: #3ecf8e;
-  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c-other: #4a4c55;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; --c-other: #4a4c55;
   --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .25);
   --glass: rgb(14 15 18 / .8);
 }
@@ -153,6 +153,11 @@ main { padding: 20px 0 48px; display: grid; grid-template-columns: minmax(0, 1fr
 .stack-legend { display: flex; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12.5px; color: var(--text-2); }
 .stack-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .stack-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.stack-legend span[data-nick] { cursor: pointer; }
+.stack-legend span[data-nick]:hover { color: var(--text); }
+.stack-legend b { color: var(--muted); font-weight: 600; }
+.tag[data-zone] { cursor: pointer; }
+.tag[data-zone]:hover { background: var(--accent-soft); color: var(--accent); }
 .stack-row { display: grid; grid-template-columns: 52px 1fr 44px; gap: 12px; align-items: center; margin-bottom: 10px; }
 .stack-row .z { font-size: 13px; font-weight: 600; }
 .stack-row .n { font-size: 12px; color: var(--muted); text-align: right; }
@@ -268,7 +273,7 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 40px; }
     </div>
     <label class="field search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-      <input type="search" id="fSearch" placeholder="닉네임 · 차량 검색" aria-label="닉네임 또는 차량 검색">
+      <input type="search" id="fSearch" placeholder="닉네임 · 차량 검색  ( / )" aria-label="닉네임 또는 차량 검색">
     </label>
     <button type="button" class="reset hidden" id="resetBtn">초기화</button>
     <span class="stamp" id="stamp" title="게임 랭킹에서 마지막으로 목록을 수집한 시각"><i class="live-dot"></i>마지막 갱신 <b class="mono" id="stampTime">-</b><span class="ago" id="stampAgo"></span></span>
@@ -312,8 +317,8 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 40px; }
           <div class="donut-wrap" id="donut"></div>
         </div>
         <div class="card">
-          <h2>지역별 1위 점유</h2>
-          <p class="desc">지역 안에서 상위 보유자가 차지한 비율</p>
+          <h2 id="zoneTitle">지역별 1위 점유</h2>
+          <p class="desc" id="zoneDesc">지역 안에서 상위 보유자가 차지한 비율</p>
           <div id="zoneStack"></div>
         </div>
       </div>
@@ -386,7 +391,11 @@ footer { color: var(--muted); font-size: 12px; padding: 0 0 40px; }
 <script>
 const EMBEDDED = /*__RANK_DATA__*/null;
 const ZONE_ORDER = ["강북", "강남", "부산", "상해", "맨하탄"];
-const PALETTE = ["--c1", "--c2", "--c3", "--c4", "--c5"];  // 상위 보유자 고정 색 (순서 고정, 순환하지 않음)
+const PALETTE = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6", "--c7", "--c8"];  // 상위 보유자 색 (순서 고정, 순환하지 않음)
+const TOP_N = 10;  // 차트에서 닉네임으로 보여 줄 인원. 9·10번째는 1·2번 색에 빗금을 더해 구분한다
+const slotSolid = i => `var(${PALETTE[i % PALETTE.length]})`;
+const slotFill = i => i < PALETTE.length ? slotSolid(i)
+  : `repeating-linear-gradient(${i === PALETTE.length ? 45 : 135}deg, ${slotSolid(i)} 0 3px, color-mix(in srgb, ${slotSolid(i)} 30%, var(--surface)) 3px 6px)`;
 const RECENT_MS = 24 * 3600 * 1000;
 
 const $ = s => document.querySelector(s);
@@ -400,7 +409,7 @@ const pct = (a, b) => b ? a / b * 100 : 0;
 const byName = (a, b) => String(a).localeCompare(String(b), "ko");
 const startKey = r => r.zone + "|" + r.start;
 
-let records = [], colorOf = new Map(), refTime = Date.now(), runStart = null, hist = [];
+let records = [], globalSlot = new Map(), colorOf = new Map(), refTime = Date.now(), runStart = null, hist = [];
 const state = {
   zone: "", start: "", end: "", q: "", nick: null, period: "run",
   sort: { tDrivers: { k: "rank", asc: true }, tCourses: { k: "zone", asc: true }, tChanges: { k: "at", asc: false }, tDetail: { k: "ms", asc: true } },
@@ -421,8 +430,9 @@ function load(db) {
       prev, gain, recent: !!prev && Date.parse(c.capturedAt) >= runStart,
     };
   });
-  // 색은 전체 데이터 기준 상위 보유자에게 고정 (필터를 바꿔도 같은 사람은 같은 색)
-  colorOf = new Map(countBy(records, r => r.nick).slice(0, PALETTE.length).map(([n], i) => [n, `var(${PALETTE[i]})`]));
+  // 전체 상위 보유자는 어느 필터에서든 같은 색. 지역·코스 필터의 TOP 10 에 새로 드는 사람은 남는 색을 받는다
+  globalSlot = new Map(countBy(records, r => r.nick).slice(0, TOP_N).map(([n], i) => [n, i]));
+  restoreUrl();
   updateStamp();
   $("#drop").classList.add("hidden");
   $("#app").classList.remove("hidden");
@@ -436,6 +446,33 @@ function countBy(rows, f) {
   const m = new Map();
   for (const r of rows) { const k = f(r); m.set(k, (m.get(k) || 0) + 1); }
   return [...m.entries()].sort((a, b) => b[1] - a[1] || byName(a[0], b[0]));
+}
+
+// 현재 필터의 TOP 10 에 색 칸을 나눠 준다: 전체 상위 보유자는 자기 칸 그대로, 나머지는 비어 있는 칸을 앞에서부터
+function assignSlots(top) {
+  const m = new Map(), used = new Set();
+  for (const d of top) if (globalSlot.has(d.nick)) { m.set(d.nick, globalSlot.get(d.nick)); used.add(globalSlot.get(d.nick)); }
+  let s = 0;
+  for (const d of top) if (!m.has(d.nick)) { while (used.has(s)) s++; m.set(d.nick, s); used.add(s); }
+  return m;
+}
+
+// 필터를 주소(?zone=부산&q=...)에 남겨 새로고침·공유해도 같은 화면이 나오게 한다
+const URL_KEYS = ["zone", "start", "end", "q"];
+let urlRestored = false;
+function restoreUrl() {
+  if (urlRestored) return;
+  urlRestored = true;
+  const p = new URLSearchParams(location.search);
+  for (const k of URL_KEYS) state[k] = p.get(k) || "";
+  if (!ZONE_ORDER.includes(state.zone)) state.zone = "";
+  $("#fSearch").value = state.q;
+}
+function saveUrl() {
+  const p = new URLSearchParams();
+  for (const k of URL_KEYS) if (state[k]) p.set(k, state[k]);
+  const s = p.toString();
+  window.history.replaceState(null, "", location.pathname + (s ? "?" + s : "") + location.hash);
 }
 
 function filtered() {
@@ -511,8 +548,8 @@ function fillEnds() {
 
 // ---------------------------------------------------------------- 공용 조각
 function avatar(nick, id) {
-  const c = colorOf.get(nick);
-  return `<span class="av"${id ? ` id="${id}"` : ""}${c ? ` style="background:${c}"` : ""}>${esc([...String(nick)][0] || "?")}</span>`;
+  const s = colorOf.get(nick);
+  return `<span class="av"${id ? ` id="${id}"` : ""}${s != null ? ` style="background:${slotSolid(s)}"` : ""}>${esc([...String(nick)][0] || "?")}</span>`;
 }
 const who = (nick, recent) => `<span class="who" data-nick="${esc(nick)}">${avatar(nick)}<span class="nm">${esc(nick)}</span></span>${recent ? '<span class="new">NEW</span>' : ""}`;
 const rankBadge = r => `<span class="rank${r <= 3 ? " r" + r : ""}">${r}</span>`;
@@ -547,6 +584,8 @@ function render() {
   const q = state.q.trim().toLowerCase();
   const hit = r => !q || r.nick.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.prev && r.prev.nick.toLowerCase().includes(q));
   const ds = drivers(rows);
+  colorOf = assignSlots(ds.slice(0, TOP_N));
+  saveUrl();
   $("#resetBtn").classList.toggle("hidden", !(state.zone || state.start || state.end || state.q));
   $$("#zoneChips .chip").forEach(b => b.classList.toggle("on", b.dataset.zone === state.zone));
 
@@ -564,7 +603,7 @@ function render() {
   renderPodium(ds);
   renderBars(ds.slice(0, 15));
   renderDonut(rows);
-  renderZoneStack(rows);
+  renderZoneStack(rows, ds.slice(0, TOP_N));
 
   // 닉네임 순위
   const dShown = sortRows(ds.filter(d => !q || d.nick.toLowerCase().includes(q) || d.car.toLowerCase().includes(q)), state.sort.tDrivers);
@@ -574,7 +613,7 @@ function render() {
     <tr class="click" data-nick="${esc(d.nick)}">
       <td>${rankBadge(d.rank)}</td><td>${who(d.nick)}</td><td class="r mono"><b>${d.n}</b></td>
       <td><span class="share"><span class="mini"><i style="width:${pct(d.n, dMax)}%"></i></span><span class="mono muted">${(d.share * 100).toFixed(1)}%</span></span></td>
-      <td>${d.zoneList.map(([z, n]) => `<span class="tag">${esc(z)} ${n}</span>`).join("")}</td>
+      <td>${d.zoneList.map(([z, n]) => `<span class="tag" data-zone="${esc(z)}" title="${esc(z)}만 보기">${esc(z)} ${n}</span>`).join("")}</td>
       <td>${esc(d.car) || "-"}</td><td class="r mono time">${fmtMs(d.fastest)}</td>
     </tr>`).join("") : `<tr><td colspan="7" class="empty">조건에 맞는 드라이버가 없습니다</td></tr>`;
 
@@ -582,7 +621,7 @@ function render() {
   const cShown = sortRows(rows.filter(hit), state.sort.tCourses);
   $("#cCourses").textContent = cShown.length;
   $("#tCourses tbody").innerHTML = cShown.length ? cShown.map(r => `
-    <tr><td><span class="tag">${esc(r.zone)}</span></td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
+    <tr><td><span class="tag" data-zone="${esc(r.zone)}" title="${esc(r.zone)}만 보기">${esc(r.zone)}</span></td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
     <td>${who(r.nick, r.recent)}</td><td>${esc(r.car)}</td><td class="r mono time">${fmtMs(r.ms)}</td>
     <td>${prevCell(r)}</td><td class="r muted mono">${fmtDate(r.capturedAt).slice(0, 5)}</td></tr>`).join("")
     : `<tr><td colspan="8" class="empty">조건에 맞는 코스가 없습니다</td></tr>`;
@@ -598,7 +637,7 @@ function render() {
   const emptyMsg = { run: "이번 수집에서 갱신된 기록이 없습니다", "24h": "최근 24시간 동안 갱신된 기록이 없습니다",
     "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다" }[state.period];
   $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(h => `
-    <tr><td class="muted mono">${fmtDate(h.at)}</td><td><span class="tag">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
+    <tr><td class="muted mono">${fmtDate(h.at)}</td><td><span class="tag" data-zone="${esc(h.zone)}" title="${esc(h.zone)}만 보기">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
     <td>${who(h.nick, inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td><td>${prevCell(h)}</td></tr>`).join("")
     : `<tr><td colspan="7" class="empty">${emptyMsg}</td></tr>`;
 
@@ -623,7 +662,7 @@ function renderBars(top) {
   $("#barChart").innerHTML = top.length ? top.map(d => `
     <div class="bar-row" data-nick="${esc(d.nick)}" data-tip="<b>${esc(d.nick)}</b>${d.n}코스 · 점유율 ${(d.share * 100).toFixed(1)}%<br>주 차량 ${esc(d.car)}">
       <span class="rk mono">${d.rank}</span><span class="nm">${esc(d.nick)}</span>
-      <span class="track"><span class="fill" style="width:${pct(d.n, max) * 0.85}%"></span><span class="val mono">${d.n}</span></span>
+      <span class="track"><span class="fill" style="width:${pct(d.n, max) * 0.85}%;background:${colorOf.has(d.nick) ? slotFill(colorOf.get(d.nick)) : "var(--c-other)"}"></span><span class="val mono">${d.n}</span></span>
     </div>`).join("") : `<div class="empty">데이터 없음</div>`;
 }
 
@@ -650,18 +689,24 @@ function renderDonut(rows) {
     : `<div class="empty" style="width:100%">데이터 없음</div>`;
 }
 
-function renderZoneStack(rows) {
+// 지역별 1위 점유: 범례·색은 현재 필터의 TOP 10 기준 (부산만 보면 부산 TOP 10)
+function renderZoneStack(rows, top) {
   const zones = ZONE_ORDER.filter(z => rows.some(r => r.zone === z));
-  const tops = [...colorOf.keys()];
-  const legend = tops.map(n => `<span><i style="background:${colorOf.get(n)}"></i>${esc(n)}</span>`).join("") + `<span><i style="background:var(--c-other)"></i>그 외</span>`;
+  const one = zones.length === 1;
+  $("#zoneTitle").textContent = one ? `${zones[0]} 1위 점유` : "지역별 1위 점유";
+  $("#zoneDesc").textContent = `${one ? "이 지역" : "현재 필터"} 보유 코스 TOP ${TOP_N} · 나머지는 '그 외'로 묶음`;
+  const legend = top.map(d => `<span data-nick="${esc(d.nick)}"><i style="background:${slotFill(colorOf.get(d.nick))}"></i>${esc(d.nick)} <b class="mono">${d.n}</b></span>`).join("")
+    + (rows.some(r => !colorOf.has(r.nick)) ? `<span><i style="background:var(--c-other)"></i>그 외</span>` : "");
   $("#zoneStack").innerHTML = zones.length ? `<div class="stack-legend">${legend}</div>` + zones.map(z => {
     const zr = rows.filter(r => r.zone === z);
-    const parts = tops.map(n => ({ n, v: zr.filter(r => r.nick === n).length, c: colorOf.get(n) })).filter(p => p.v);
-    const other = zr.length - parts.reduce((s, p) => s + p.v, 0);
-    if (other) parts.push({ n: "그 외", v: other, c: "var(--c-other)" });
+    const parts = top.map(d => ({ n: d.nick, v: zr.filter(r => r.nick === d.nick).length, c: slotFill(colorOf.get(d.nick)) })).filter(p => p.v);
+    const rest = countBy(zr.filter(r => !colorOf.has(r.nick)), r => r.nick);
+    const other = rest.reduce((s, [, n]) => s + n, 0);
+    if (other) parts.push({ n: "그 외", v: other, c: "var(--c-other)",
+      more: `${rest.length}명 · ` + rest.slice(0, 3).map(([n, v]) => `${esc(n)} ${v}`).join(", ") + (rest.length > 3 ? " …" : "") });
     return `<div class="stack-row"><span class="z">${esc(z)}</span>
-      <div class="stack">${parts.map(p => `<div style="flex:${p.v};background:${p.c}"${p.n !== "그 외" ? ` data-nick="${esc(p.n)}"` : ""}
-        data-tip="<b>${esc(z)} · ${esc(p.n)}</b>${p.v}코스 · ${pct(p.v, zr.length).toFixed(1)}%"></div>`).join("")}</div>
+      <div class="stack">${parts.map(p => `<div style="flex:${p.v};background:${p.c}"${p.more ? "" : ` data-nick="${esc(p.n)}"`}
+        data-tip="<b>${esc(z)} · ${esc(p.n)}</b>${p.v}코스 · ${pct(p.v, zr.length).toFixed(1)}%${p.more ? `<br>${p.more}` : ""}"></div>`).join("")}</div>
       <span class="n mono">${zr.length}</span></div>`;
   }).join("") : `<div class="empty">데이터 없음</div>`;
 }
@@ -709,10 +754,10 @@ function renderDrawer() {
   $("#dStats").innerHTML = [["보유 코스", d.n], ["점유율", (d.share * 100).toFixed(1) + "%"], ["최단 기록", fmtMs(d.fastest)], ["갱신해서 차지", taken]]
     .map(([l, v]) => `<div class="stat"><b class="mono">${v}</b><span>${l}</span></div>`).join("");
   const zmax = Math.max(...d.zoneList.map(([, n]) => n));
-  const color = colorOf.get(d.nick) || "var(--accent)";
+  const color = colorOf.has(d.nick) ? slotFill(colorOf.get(d.nick)) : "var(--accent)";
   $("#dZones").innerHTML = d.zoneList.map(([z, n]) => `<div class="zbar"><span>${esc(z)}</span><span class="t"><i style="width:${pct(n, zmax)}%;background:${color}"></i></span><span class="mono" style="text-align:right">${n}</span></div>`).join("");
   $("#dCars").innerHTML = countBy(d.rows, r => r.car).map(([c, n]) => `<span class="tag">${esc(c)} <b>${n}</b></span>`).join("");
-  $("#tDetail tbody").innerHTML = sortRows([...d.rows], state.sort.tDetail).map(r => `<tr><td><span class="tag">${esc(r.zone)}</span></td>
+  $("#tDetail tbody").innerHTML = sortRows([...d.rows], state.sort.tDetail).map(r => `<tr><td><span class="tag" data-zone="${esc(r.zone)}" title="${esc(r.zone)}만 보기">${esc(r.zone)}</span></td>
     <td>${esc(r.start)}</td><td>${esc(r.end)}</td><td class="r mono time">${fmtMs(r.ms)}${r.recent ? '<span class="new">NEW</span>' : ""}</td><td>${prevCell(r)}</td><td>${esc(r.car)}</td></tr>`).join("");
   markSorted($("#tDetail"));
 }
@@ -744,8 +789,19 @@ document.addEventListener("click", e => {
     id === "tDetail" ? renderDrawer() : render();
     return;
   }
+  const z = e.target.closest(".tag[data-zone]");
+  if (z) {
+    if (z.closest("#drawer")) closeDrawer();
+    state.zone = z.dataset.zone; fillStarts(); render();
+    $("#filterbar").scrollIntoView({ block: "nearest" });
+    return;
+  }
   const n = e.target.closest("[data-nick]");
   if (n && !e.target.closest("#drawer")) openDrawer(n.dataset.nick);
+});
+// '/' 키로 검색창으로 이동
+document.addEventListener("keydown", e => {
+  if (e.key === "/" && !e.target.closest("input, select, textarea")) { e.preventDefault(); $("#fSearch").focus(); }
 });
 $("#podium").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.dataset.nick) openDrawer(e.target.dataset.nick); });
 $("#overlay").addEventListener("click", closeDrawer);
