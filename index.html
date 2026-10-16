@@ -719,7 +719,7 @@ function renderPodium(ds) {
 function renderBars(top) {
   const max = top[0]?.n || 1;
   $("#barChart").innerHTML = top.length ? top.map(d => `
-    <div class="bar-row" data-nick="${esc(d.nick)}" data-tip="<b>${esc(d.nick)}</b>${d.n}코스 · 점유율 ${(d.share * 100).toFixed(1)}%<br>주 차량 ${esc(d.car)}">
+    <div class="bar-row" data-nick="${esc(d.nick)}" data-tip="${esc(`<b>${esc(d.nick)}</b>${d.n}코스 · 점유율 ${(d.share * 100).toFixed(1)}%<br>주 차량 ${esc(d.car)}`)}">
       <span class="rk mono">${d.rank}</span><span class="nm">${esc(d.nick)}</span>
       <span class="track"><span class="fill" style="width:${pct(d.n, max) * 0.85}%;background:${colorOf.has(d.nick) ? slotFill(colorOf.get(d.nick)) : "var(--c-other)"}"></span><span class="val mono">${d.n}</span></span>
     </div>`).join("") : `<div class="empty">데이터 없음</div>`;
@@ -737,7 +737,7 @@ function renderDonut(rows) {
   const segs = slices.map(s => {
     const len = Math.max(C * s.n / total - GAP, 0.6);
     const el = `<circle class="seg" cx="80" cy="80" r="${R}" stroke="${s.c}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}"
-      data-tip="<b>${esc(s.k)}</b>${s.n}코스 · ${pct(s.n, total).toFixed(1)}%"></circle>`;
+      data-tip="${esc(`<b>${esc(s.k)}</b>${s.n}코스 · ${pct(s.n, total).toFixed(1)}%`)}"></circle>`;
     off += C * s.n / total;
     return el;
   }).join("");
@@ -767,8 +767,8 @@ function renderZoneStack(rows) {
     return `<div class="zblock">
       <div class="zhead"><span class="tag" data-zone="${esc(z)}" title="${esc(z)}만 보기">${esc(z)}</span><span class="n mono">${zr.length}코스</span></div>
       <div class="stack">${parts.map(p => `<div style="flex:${p.v};background:${p.c}"${p.more ? "" : ` data-nick="${esc(p.n)}"`}
-        data-tip="<b>${esc(z)} · ${esc(p.n)}</b>${p.v}코스 · ${pct(p.v, zr.length).toFixed(1)}%${p.more ? `<br>${p.more}` : ""}"></div>`).join("")}</div>
-      <div class="stack-legend">${parts.map(p => `<span${p.more ? ` data-tip="${p.more}"` : ` data-nick="${esc(p.n)}"`}><i style="background:${p.c}"></i>${esc(p.n)} <b class="mono">${p.v}</b></span>`).join("")}</div>
+        data-tip="${esc(`<b>${esc(z)} · ${esc(p.n)}</b>${p.v}코스 · ${pct(p.v, zr.length).toFixed(1)}%${p.more ? `<br>${p.more}` : ""}`)}"></div>`).join("")}</div>
+      <div class="stack-legend">${parts.map(p => `<span${p.more ? ` data-tip="${esc(p.more)}"` : ` data-nick="${esc(p.n)}"`}><i style="background:${p.c}"></i>${esc(p.n)} <b class="mono">${p.v}</b></span>`).join("")}</div>
     </div>`;
   }).join("") : `<div class="empty">데이터 없음</div>`;
 }
@@ -893,7 +893,7 @@ addEventListener("scroll", () => $("#toTop").classList.toggle("show", scrollY > 
 $("#toTop").addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 document.addEventListener("keydown", e => { if (e.key === "Escape" && state.nick) closeDrawer(); });
 
-// 툴팁 (data-tip 이 있는 모든 마크)
+// 툴팁 (data-tip 이 있는 모든 마크) - 속성값은 esc() 한 번 더 감싼 HTML 이어야 한다 (dataset 이 엔티티를 풀기 때문)
 const tip = $("#tip");
 document.addEventListener("mousemove", e => {
   const t = e.target.closest("[data-tip]");
