@@ -683,7 +683,7 @@ function render() {
   const emptyMsg = { run: "이번 수집에서 갱신된 기록이 없습니다", "24h": "최근 24시간 동안 갱신된 기록이 없습니다",
     "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다" }[state.period];
   $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(h => `
-    <tr><td class="muted mono">${fmtDate(h.at)}</td><td><span class="tag" data-zone="${esc(h.zone)}" title="${esc(h.zone)}만 보기">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
+    <tr><td class="muted mono" title="${fmtDate(h.at)} 확인">${fmtDate(h.at).slice(0, 5)}</td><td><span class="tag" data-zone="${esc(h.zone)}" title="${esc(h.zone)}만 보기">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
     <td>${who(h.nick, !h.rename && inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td></tr>`).join("")
     : `<tr><td colspan="6" class="empty">${emptyMsg}</td></tr>`;
 
