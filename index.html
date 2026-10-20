@@ -448,7 +448,7 @@ const pct = (a, b) => b ? a / b * 100 : 0;
 const byName = (a, b) => String(a).localeCompare(String(b), "ko");
 const startKey = r => r.zone + "|" + r.start;
 
-let firstDay = "", records = [], globalSlot = new Map(), colorOf = new Map(), refTime = Date.now(), runStart = null, hist = [];
+let firstDay = "", startLabel = new Map(), records = [], globalSlot = new Map(), colorOf = new Map(), refTime = Date.now(), runStart = null, hist = [];
 const state = {
   zone: "", start: "", end: "", q: "", tab: "", nick: null, period: "run",
   sort: { tDrivers: { k: "rank", asc: true }, tCourses: { k: "zone", asc: true }, tChanges: { k: "at", asc: false }, tDetail: { k: "ms", asc: true } },
@@ -466,11 +466,24 @@ function load(db) {
     const prev = c.prev && c.prev.nick && !renamedFrom ? c.prev : null;
     const gain = prev && prev.ms != null && c.best.ms != null ? prev.ms - c.best.ms : null;
     return {
-      zone: c.zoneName || "", start: c.startName || "", end: c.endName || "",
+      zone: c.zoneName || "", start: c.startName || "", end: c.endName || "", sid: +c.start, eid: +c.end,
       nick: c.best.nick, car: c.best.car || "", ms: c.best.ms, capturedAt: c.capturedAt || "",
       prev, gain, renamedFrom, recent: !!prev && Date.parse(c.capturedAt) >= runStart,
     };
   });
+  // 같은 지역에 이름이 같은 출발지(부산 중앙부두 192·232)가 있으면 게임 순서대로 (위)·(아래)를 붙인다
+  const sameName = new Map();
+  for (const r of records) {
+    const k = r.zone + "|" + r.start;
+    (sameName.get(k) || sameName.set(k, new Set()).get(k)).add(r.sid);
+  }
+  startLabel = new Map();
+  for (const [k, ids] of sameName) if (ids.size > 1) {
+    const [zone, name] = k.split("|"), sorted = [...ids].sort((a, b) => a - b);
+    sorted.forEach((id, i) => startLabel.set(zone + "|" + id,
+      `${name} (${sorted.length === 2 ? ["위", "아래"][i] : i + 1})`));
+  }
+  for (const r of records) r.start = startLabel.get(r.zone + "|" + r.sid) || r.start;
   // 집계 시작일: 가장 이른 수집 날짜 (머리말·기록 갱신 탭에 표시)
   firstDay = records.reduce((m, r) => r.capturedAt && (!m || r.capturedAt < m) ? r.capturedAt : m, "").slice(0, 10);
   $("#since").textContent = firstDay ? `${firstDay.replace(/-/g, ".")}부터 집계` : "";
@@ -540,12 +553,19 @@ function drivers(rows) {
   return list;
 }
 
+// 출발지·도착지는 게임 콤보와 같은 순서(지역 → 출발지 id → 도착지 id)로 정렬한다
+const zoneIdx = z => ZONE_ORDER.indexOf(z);
+const gameOrder = (a, b) => (zoneIdx(a.zone) - zoneIdx(b.zone)) || ((a.sid ?? 0) - (b.sid ?? 0)) || ((a.eid ?? 0) - (b.eid ?? 0));
 function sortRows(arr, { k, asc }) {
   return arr.sort((a, b) => {
-    let x = a[k], y = b[k];
-    if (k === "zone") { x = ZONE_ORDER.indexOf(a.zone); y = ZONE_ORDER.indexOf(b.zone); }
-    const c = typeof x === "string" || typeof y === "string" ? byName(x ?? "", y ?? "") : (x ?? -Infinity) - (y ?? -Infinity);
-    return (asc ? c : -c) || byName(a.start ?? "", b.start ?? "") || byName(a.end ?? "", b.end ?? "");
+    let c;
+    if (k === "zone" || k === "start") c = gameOrder(a, b);
+    else if (k === "end") c = (zoneIdx(a.zone) - zoneIdx(b.zone)) || ((a.eid ?? 0) - (b.eid ?? 0)) || ((a.sid ?? 0) - (b.sid ?? 0));
+    else {
+      const x = a[k], y = b[k];
+      c = typeof x === "string" || typeof y === "string" ? byName(x ?? "", y ?? "") : (x ?? -Infinity) - (y ?? -Infinity);
+    }
+    return (asc ? c : -c) || (a.sid != null ? gameOrder(a, b) : 0);
   });
 }
 
@@ -583,14 +603,19 @@ function setOptions(sel, allLabel, opts, cur) {
 
 function fillStarts() {
   const m = new Map();
-  for (const r of records) if (!state.zone || r.zone === state.zone) m.set(startKey(r), state.zone ? r.start : `${r.start} · ${r.zone}`);
-  state.start = setOptions($("#fStart"), "출발지 전체", [...m.entries()].sort((a, b) => byName(a[1], b[1])), state.start);
+  for (const r of records) if (!state.zone || r.zone === state.zone) m.set(startKey(r), { label: state.zone ? r.start : `${r.start} · ${r.zone}`, r });
+  const opts = [...m.entries()].sort((a, b) => gameOrder({ ...a[1].r, eid: 0 }, { ...b[1].r, eid: 0 })).map(([k, v]) => [k, v.label]);
+  state.start = setOptions($("#fStart"), "출발지 전체", opts, state.start);
   fillEnds();
 }
 
 function fillEnds() {
-  const names = new Set(records.filter(r => (!state.zone || r.zone === state.zone) && (!state.start || startKey(r) === state.start)).map(r => r.end));
-  state.end = setOptions($("#fEnd"), "도착지 전체", [...names].sort(byName).map(n => [n, n]), state.end);
+  const m = new Map();  // 도착지 이름 -> 게임 순서 (지역, 도착지 id)
+  for (const r of records) if ((!state.zone || r.zone === state.zone) && (!state.start || startKey(r) === state.start)) {
+    const o = zoneIdx(r.zone) * 1e4 + (r.eid ?? 0);
+    if (!m.has(r.end) || o < m.get(r.end)) m.set(r.end, o);
+  }
+  state.end = setOptions($("#fEnd"), "도착지 전체", [...m.entries()].sort((a, b) => a[1] - b[1]).map(([n]) => [n, n]), state.end);
 }
 
 // ---------------------------------------------------------------- 공용 조각
@@ -607,8 +632,10 @@ function changeRows() {
   if (hist.length) {
     return hist.filter(h => h && h.new && h.old).map(h => {
       const [start, end] = String(h.course || "").split(" → ");
+      const [, sid, eid] = String(h.key || "").split("-").map(Number);
       const gain = h.old.ms != null && h.new.ms != null ? h.old.ms - h.new.ms : null;
-      return { at: h.at || "", zone: h.zoneName || "", start: start || "", end: end || "",
+      const zone = h.zoneName || "";
+      return { at: h.at || "", zone, start: startLabel.get(zone + "|" + sid) || start || "", end: end || "", sid, eid,
         nick: h.new.nick, car: h.new.car || "", ms: h.new.ms, prev: h.old, gain, rename: isRename(h.old, h.new) };
     });
   }
@@ -683,7 +710,7 @@ function render() {
   const emptyMsg = { run: "이번 수집에서 갱신된 기록이 없습니다", "24h": "최근 24시간 동안 갱신된 기록이 없습니다",
     "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다" }[state.period];
   $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(h => `
-    <tr><td class="muted mono" title="${fmtDate(h.at)} 확인">${fmtDate(h.at).slice(0, 5)}</td><td><span class="tag" data-zone="${esc(h.zone)}" title="${esc(h.zone)}만 보기">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
+    <tr><td class="muted mono">${fmtDate(h.at).slice(0, 5)}</td><td><span class="tag" data-zone="${esc(h.zone)}" title="${esc(h.zone)}만 보기">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
     <td>${who(h.nick, !h.rename && inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td></tr>`).join("")
     : `<tr><td colspan="6" class="empty">${emptyMsg}</td></tr>`;
 
