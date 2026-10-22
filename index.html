@@ -48,6 +48,16 @@ body { margin: 0; background: var(--bg); color: var(--text);
 .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
 .hidden { display: none !important; }
+/* 입장 비밀번호 */
+html.locked body > :not(#gate) { display: none !important; }
+.gate { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: var(--bg); }
+.gate-card { width: min(340px, 100%); display: grid; gap: 12px; padding: 28px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.gate-card h1 { margin: 0; font-size: 18px; }
+.gate-card p { margin: 0; color: var(--text-2); font-size: 13.5px; }
+.gate-card input { font: inherit; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); }
+.gate-card input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.gate-card button { font: inherit; font-weight: 700; padding: 10px 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+.gate-card .gate-msg { color: #d6453d; min-height: 1.2em; }
 button, select, input { font: inherit; color: inherit; letter-spacing: inherit; }
 
 /* hero */
@@ -273,6 +283,15 @@ footer .credit .sep { color: var(--muted); margin: 0 4px; }
 </style>
 </head>
 <body>
+<div class="gate hidden" id="gate">
+  <form class="gate-card" id="gateForm">
+    <h1>CTRacer 코스레코드</h1>
+    <p>입장 비밀번호를 입력하세요</p>
+    <input type="password" id="gatePass" autocomplete="current-password" aria-label="비밀번호" required>
+    <button type="submit">입장</button>
+    <p class="gate-msg" id="gateMsg" role="alert"></p>
+  </form>
+</div>
 <div class="wrap">
   <div class="hero">
     <div class="brand">
@@ -373,6 +392,7 @@ footer .credit .sep { color: var(--muted); margin: 0 4px; }
         <table id="tCourses"><thead><tr>
           <th data-k="zone" data-asc="1" class="sorted asc">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
           <th data-k="nick" data-asc="1">보유자</th><th data-k="car" data-asc="1">차량</th><th data-k="ms" data-asc="1" class="r">기록</th>
+          <th data-k="gain">직전 기록</th>
         </tr></thead><tbody></tbody></table>
       </div>
       <div class="period hidden" data-panel="changes">
@@ -381,18 +401,19 @@ footer .credit .sep { color: var(--muted); margin: 0 4px; }
           <button type="button" class="chip" data-period="24h">24시간</button>
           <button type="button" class="chip" data-period="7d">7일</button>
           <button type="button" class="chip" data-period="all">전체</button>
+          <button type="button" class="chip hidden" data-period="rename" title="기록은 같고 닉네임만 바뀐 경우 (갱신 건수에서 제외)">닉네임 변경</button>
         </div>
         <span class="run" id="runInfo"></span>
       </div>
       <div class="table-wrap hidden" data-panel="changes">
         <table id="tChanges"><thead><tr>
           <th data-k="at" class="sorted">갱신 확인</th><th data-k="zone" data-asc="1">지역</th><th data-k="start" data-asc="1">출발지</th><th data-k="end" data-asc="1">도착지</th>
-          <th data-k="nick" data-asc="1">신규</th><th data-k="ms" data-asc="1" class="r">기록</th>
+          <th data-k="nick" data-asc="1">신규</th><th data-k="ms" data-asc="1" class="r">기록</th><th data-k="gain">직전 기록</th>
         </tr></thead><tbody></tbody></table>
       </div>
     </section>
   </main>
-  <footer><div class="credit"><span>Made by</span> <span class="who" data-nick="TeamNR매즈" title="TeamNR매즈의 코스레코드 보기"><span class="nm">TeamNR매즈</span></span><span class="sep">·</span><span>Supported by</span> <b>MAESTRO</b></div>비공식 집계 · 게임 내 랭킹 &gt; 코스레코드 화면의 전체 1위 기록을 수집한 것입니다. 갱신 내역은 최초 수집 이후에 바뀐 코스만 표시됩니다. '이번 수집'은 마지막 수집에서 새로 확인된 갱신입니다.</footer>
+  <footer><div class="credit"><span>Made by</span> <span class="who" data-nick="TeamNR매즈" title="TeamNR매즈의 코스레코드 보기"><span class="nm">TeamNR매즈</span></span><span class="sep">·</span><span>Supported by</span> <b>MAESTRO</b></div>비공식 집계 · 게임 내 랭킹 &gt; 코스레코드 화면의 전체 1위 기록을 수집한 것입니다. 직전 기록과 갱신 내역은 최초 수집 이후에 바뀐 코스만 표시됩니다. '이번 수집'은 마지막 수집에서 새로 확인된 갱신입니다.</footer>
 </div>
 
 <div class="overlay" id="overlay"></div>
@@ -415,7 +436,7 @@ footer .credit .sep { color: var(--muted); margin: 0 4px; }
       <div class="table-wrap" style="max-height:none">
         <table id="tDetail"><thead><tr>
           <th data-k="zone" data-asc="1">지역</th><th data-k="start" data-asc="1">코스</th>
-          <th data-k="ms" data-asc="1" class="r sorted asc">기록</th>
+          <th data-k="ms" data-asc="1" class="r sorted asc">기록</th><th data-k="gain">직전 기록</th>
         </tr></thead><tbody></tbody></table>
       </div>
     </div>
@@ -625,7 +646,13 @@ function avatar(nick, id) {
 }
 const who = (nick, recent) => `<span class="who" data-nick="${esc(nick)}">${avatar(nick)}<span class="nm">${esc(nick)}</span></span>${recent ? '<span class="new">NEW</span>' : ""}`;
 const rankBadge = r => `<span class="rank${r <= 3 ? " r" + r : ""}">${r}</span>`;
+// 직전 기록: 최초 수집 이후 1위가 바뀐 코스만 있음
 const isRename = (o, n) => !!(o && n && o.nick && o.ms != null && o.ms === n.ms && o.nick !== n.nick);
+const prevCell = r => r.rename || r.renamedFrom
+  ? `<span class="prev" title="같은 기록 ${fmtMs(r.ms)} · 닉네임만 바뀜"><span>닉네임 변경 · 이전</span><s>${esc(r.rename ? r.prev.nick : r.renamedFrom)}</s></span>`
+  : r.prev
+  ? `<span class="prev" title="${esc(r.prev.nick)} · ${esc(r.prev.car)} · ${fmtDate(r.prev.at)} 확인"><s>${esc(r.prev.nick)}</s><span class="mono">${fmtMs(r.prev.ms)}</span>${r.gain != null ? `<span class="gain mono${r.gain <= 0 ? " slower" : ""}">${fmtGain(r.gain)}</span>` : ""}</span>`
+  : `<span class="muted">-</span>`;
 
 // 갱신 행: history.json(같은 코스의 여러 번 갱신 포함)이 있으면 그것을, 없으면 코스별 직전 기록(prev)을 쓴다
 function changeRows() {
@@ -654,7 +681,7 @@ function inPeriod(h, period) {
 function render() {
   const rows = filtered();
   const q = state.q.trim().toLowerCase();
-  const hit = r => !q || r.nick.toLowerCase().includes(q) || r.car.toLowerCase().includes(q);  // 직전 기록 열이 없으니 직전 보유자 닉네임으로는 찾지 않는다
+  const hit = r => !q || r.nick.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.prev && r.prev.nick.toLowerCase().includes(q));
   const ds = drivers(rows);
   colorOf = assignSlots(ds.slice(0, TOP_N));
   saveUrl();
@@ -665,7 +692,7 @@ function render() {
   // 갱신 이력도 지역·출발지·도착지 필터를 따른다
   const inFilter = h => (!state.zone || h.zone === state.zone) && (!state.start || startKey(h) === state.start) && (!state.end || h.end === state.end);
   const allChanges = changeRows().filter(inFilter);
-  const changes = allChanges.filter(h => !h.rename);  // 닉네임만 바뀐 건 갱신이 아님
+  const changes = allChanges.filter(h => !h.rename), renames = allChanges.filter(h => h.rename);
   const recent = changes.filter(h => inPeriod(h, "run"));
   $("#kCourses").innerHTML = `${rows.length.toLocaleString()}<small>코스</small>`;
   $("#kHolders").innerHTML = `${ds.length.toLocaleString()}<small>명</small>`;
@@ -697,22 +724,27 @@ function render() {
   $("#cCourses").textContent = cShown.length;
   $("#tCourses tbody").innerHTML = cShown.length ? cShown.map(r => `
     <tr><td><span class="tag" data-zone="${esc(r.zone)}" title="${esc(r.zone)}만 보기">${esc(r.zone)}</span></td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
-    <td>${who(r.nick, r.recent)}</td><td>${esc(r.car)}</td><td class="r mono time">${fmtMs(r.ms)}</td></tr>`).join("")
-    : `<tr><td colspan="6" class="empty">조건에 맞는 코스가 없습니다</td></tr>`;
+    <td>${who(r.nick, r.recent)}</td><td>${esc(r.car)}</td><td class="r mono time">${fmtMs(r.ms)}</td>
+    <td>${prevCell(r)}</td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">조건에 맞는 코스가 없습니다</td></tr>`;
 
   // 기록 갱신: 기간 칩 + 현재 필터
   $$("#periodChips .chip").forEach(b => b.classList.toggle("on", b.dataset.period === state.period));
   const rs = new Date(runStart), p2 = n => String(n).padStart(2, "0");
   $("#runInfo").textContent = (firstDay ? `${firstDay.replace(/-/g, ".")}부터 집계 · ` : "") + `이번 수집 시작 ${p2(rs.getMonth() + 1)}.${p2(rs.getDate())} ${p2(rs.getHours())}:${p2(rs.getMinutes())}` +
     ` · ${state.zone || state.start || state.end ? "이 필터의 " : ""}전체 이력 ${changes.length}건 (${new Set(changes.map(h => h.zone + "|" + h.start + "|" + h.end)).size}코스, 한 코스가 여러 번 바뀐 것 포함)`;
-  const chShown = sortRows(changes.filter(h => inPeriod(h, state.period) && hit(h)), state.sort.tChanges);
+  const renameChip = $('#periodChips [data-period="rename"]');
+  renameChip.classList.toggle("hidden", !renames.length && state.period !== "rename");
+  renameChip.textContent = `닉네임 변경 ${renames.length}`;
+  const chShown = sortRows(state.period === "rename" ? renames.filter(hit) : changes.filter(h => inPeriod(h, state.period) && hit(h)), state.sort.tChanges);
   $("#cChanges").textContent = chShown.length;  // 탭 숫자 = 지금 표에 보이는 건수 (기간·필터 반영)
   const emptyMsg = { run: "이번 수집에서 갱신된 기록이 없습니다", "24h": "최근 24시간 동안 갱신된 기록이 없습니다",
-    "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다" }[state.period];
+    "7d": "최근 7일 동안 갱신된 기록이 없습니다", all: "아직 갱신된 기록이 없습니다. 최초 수집 이후 1위가 바뀌면 여기에 쌓입니다",
+    rename: "닉네임이 바뀐 기록이 없습니다" }[state.period];
   $("#tChanges tbody").innerHTML = chShown.length ? chShown.map(h => `
     <tr><td class="muted mono">${fmtDate(h.at).slice(0, 5)}</td><td><span class="tag" data-zone="${esc(h.zone)}" title="${esc(h.zone)}만 보기">${esc(h.zone)}</span></td><td>${esc(h.start)}</td><td>${esc(h.end)}</td>
-    <td>${who(h.nick, !h.rename && inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td></tr>`).join("")
-    : `<tr><td colspan="6" class="empty">${emptyMsg}</td></tr>`;
+    <td>${who(h.nick, !h.rename && inPeriod(h, "run"))}</td><td class="r mono time">${fmtMs(h.ms)}</td><td>${prevCell(h)}</td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">${emptyMsg}</td></tr>`;
 
   $$("table").forEach(markSorted);
   if (state.nick) renderDrawer();
@@ -837,7 +869,7 @@ function renderDrawer() {
   $("#dZones").innerHTML = d.zoneList.map(([z, n]) => `<div class="zbar"><span>${esc(z)}</span><span class="t"><i style="width:${pct(n, zmax)}%;background:${color}"></i></span><span class="mono" style="text-align:right">${n}</span></div>`).join("");
   $("#dCars").innerHTML = countBy(d.rows, r => r.car).map(([c, n]) => `<span class="tag">${esc(c)} <b>${n}</b></span>`).join("");
   $("#tDetail tbody").innerHTML = sortRows([...d.rows], state.sort.tDetail).map(r => `<tr><td><span class="tag" data-zone="${esc(r.zone)}" title="${esc(r.zone)}만 보기">${esc(r.zone)}</span></td>
-    <td class="route">${esc(r.start)} <span class="muted">→</span> ${esc(r.end)}</td><td class="r mono time">${fmtMs(r.ms)}${r.recent ? '<span class="new">NEW</span>' : ""}</td></tr>`).join("");
+    <td class="route">${esc(r.start)} <span class="muted">→</span> ${esc(r.end)}</td><td class="r mono time">${fmtMs(r.ms)}${r.recent ? '<span class="new">NEW</span>' : ""}</td><td>${prevCell(r)}</td></tr>`).join("");
   markSorted($("#tDetail"));
 }
 
@@ -946,6 +978,31 @@ async function fetchJson(name) {
   if (!r.ok) throw new Error(`${name} ${r.status}`);
   return r.json();
 }
+// 입장 비밀번호: 웹에서 열 때만 묻고, 맞으면 이 브라우저에 기억한다.
+// 페이지와 ranks.json 은 공개 주소라 바로 받을 수 있으므로 화면을 가리는 잠금일 뿐 보안은 아니다.
+// 바꾸기: python -c "import hashlib;print(hashlib.sha256('새 비밀번호'.encode()).hexdigest())" 값을 넣는다 (바꾸면 기억된 입장도 풀린다)
+const PASS_HASH = "27315a06ec7ad0eeb6d770f65e93902e0d313be20b08a970212592c494683e96";  // MAESTRO
+async function sha256(s) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+function unlock() {
+  let saved = "";
+  try { saved = localStorage.getItem("ctrPass") || ""; } catch {}
+  if (saved === PASS_HASH) return Promise.resolve();
+  document.documentElement.classList.add("locked");
+  const gate = $("#gate"), input = $("#gatePass"), msg = $("#gateMsg");
+  gate.classList.remove("hidden");
+  input.focus();
+  return new Promise(resolve => $("#gateForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (await sha256(input.value) !== PASS_HASH) { msg.textContent = "비밀번호가 틀렸습니다"; input.select(); return; }
+    try { localStorage.setItem("ctrPass", PASS_HASH); } catch {}
+    gate.classList.add("hidden");
+    document.documentElement.classList.remove("locked");
+    resolve();
+  }));
+}
 function openHash() { if (location.hash.length > 1) openDrawer(decodeURIComponent(location.hash.slice(1))); }
 if (EMBEDDED) {
   load(EMBEDDED);
@@ -953,7 +1010,7 @@ if (EMBEDDED) {
 } else if (location.protocol.startsWith("http")) {
   // GitHub Pages 등 웹 서버: 같은 폴더의 ranks.json
   drop.classList.add("hidden");
-  fetchJson("ranks.json").then(db => {
+  unlock().then(() => fetchJson("ranks.json")).then(db => {
     $("#openBtn").classList.add("hidden");
     load(db);
     openHash();
