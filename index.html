@@ -681,7 +681,7 @@ function inPeriod(h, period) {
 function render() {
   const rows = filtered();
   const q = state.q.trim().toLowerCase();
-  const hit = r => !q || r.nick.toLowerCase().includes(q) || r.car.toLowerCase().includes(q) || (r.prev && r.prev.nick.toLowerCase().includes(q));
+  const hit = r => !q || r.nick.toLowerCase().includes(q) || r.car.toLowerCase().includes(q);  // 직전 보유자 닉네임으로는 찾지 않는다 (지금 보유자만)
   const ds = drivers(rows);
   colorOf = assignSlots(ds.slice(0, TOP_N));
   saveUrl();
