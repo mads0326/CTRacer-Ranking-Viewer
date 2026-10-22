@@ -978,18 +978,15 @@ async function fetchJson(name) {
   if (!r.ok) throw new Error(`${name} ${r.status}`);
   return r.json();
 }
-// 입장 비밀번호: 웹에서 열 때만 묻고, 맞으면 이 브라우저에 기억한다.
+// 입장 비밀번호: 웹에서 열 때마다 묻는다 (기억하지 않음).
 // 페이지와 ranks.json 은 공개 주소라 바로 받을 수 있으므로 화면을 가리는 잠금일 뿐 보안은 아니다.
-// 바꾸기: python -c "import hashlib;print(hashlib.sha256('새 비밀번호'.encode()).hexdigest())" 값을 넣는다 (바꾸면 기억된 입장도 풀린다)
+// 바꾸기: python -c "import hashlib;print(hashlib.sha256('새 비밀번호'.encode()).hexdigest())" 값을 넣는다
 const PASS_HASH = "27315a06ec7ad0eeb6d770f65e93902e0d313be20b08a970212592c494683e96";  // MAESTRO
 async function sha256(s) {
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
 }
 function unlock() {
-  let saved = "";
-  try { saved = localStorage.getItem("ctrPass") || ""; } catch {}
-  if (saved === PASS_HASH) return Promise.resolve();
   document.documentElement.classList.add("locked");
   const gate = $("#gate"), input = $("#gatePass"), msg = $("#gateMsg");
   gate.classList.remove("hidden");
@@ -997,7 +994,6 @@ function unlock() {
   return new Promise(resolve => $("#gateForm").addEventListener("submit", async e => {
     e.preventDefault();
     if (await sha256(input.value) !== PASS_HASH) { msg.textContent = "비밀번호가 틀렸습니다"; input.select(); return; }
-    try { localStorage.setItem("ctrPass", PASS_HASH); } catch {}
     gate.classList.add("hidden");
     document.documentElement.classList.remove("locked");
     resolve();
